@@ -82,9 +82,9 @@ object ReportGenerator {
         }
 
         return """
-            در تاریخ \( date از پروژه « \){project.name}» واقع در ${project.city}، منطقه ${project.district}، 
+            در تاریخ $date از پروژه «${project.name}» واقع در ${project.city}، منطقه ${project.district}، 
             با کاربری ${project.buildingType}، گروه ساختمانی ${project.buildingGroup}، 
-            تعداد طبقات \( {project.floorsCount} و سیستم تأسیساتی « \){project.mechanicalSystemType}» 
+            تعداد طبقات ${project.floorsCount} و سیستم تأسیساتی «${project.mechanicalSystemType}» 
             بازدید $typeText به عمل آمد. موارد زیر بر اساس مشاهدات میدانی و اطلاعات ثبت‌شده گزارش می‌شود.
         """.trimIndent()
     }
