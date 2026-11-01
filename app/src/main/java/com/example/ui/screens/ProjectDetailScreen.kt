@@ -239,7 +239,7 @@ fun ProjectDetailScreen(
                                     onClick = {
                                         isGeneratingReport = true
                                         scope.launch {
-                                            generatedReportText = GeminiService.generateSupervisionReport(project, checklists)
+                                            generatedReportText = ReportGenerator.generateForCard(project, checklists, includeRegulations = false)
                                             isGeneratingReport = false
                                         }
                                     },
