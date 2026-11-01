@@ -15,7 +15,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object GeminiService {
-    private const val TAG = "GeminiService"
+  private const val GEMINI_API_KEY = "dummy_key_for_build"
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
