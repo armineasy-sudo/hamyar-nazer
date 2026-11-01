@@ -26,7 +26,7 @@ object GeminiService {
     // Flag indicating if we are using the live API or simulation
     fun isApiKeyConfigured(): Boolean {
         return try {
-            val key = BuildConfig.GEMINI_API_KEY
+           val key = GEMINI_API_KEY
             key.isNotEmpty() && key != "MY_GEMINI_API_KEY"
         } catch (e: Exception) {
             false
