@@ -72,6 +72,7 @@ object ReportGenerator {
     }
 
     private fun buildIntro(project: ProjectEntity, type: ReportType, date: String): String {
+    private fun buildIntro(project: ProjectEntity, type: ReportType, date: String): String {
         val typeText = when (type) {
             ReportType.INITIAL -> "بازدید اولیه"
             ReportType.STAGE -> "بازدید مرحله‌ای"
@@ -87,6 +88,7 @@ object ReportGenerator {
             تعداد طبقات \( {project.floorsCount} و سیستم تأسیساتی « \){project.mechanicalSystemType}» 
             بازدید $typeText به عمل آمد. موارد زیر بر اساس مشاهدات میدانی و اطلاعات ثبت‌شده گزارش می‌شود.
         """.trimIndent()
+    }
     }
 
     private fun buildBody(
