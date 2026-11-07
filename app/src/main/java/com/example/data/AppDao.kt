@@ -33,4 +33,7 @@ interface AppDao {
 
     @Update
     suspend fun updateChecklistItem(item: ChecklistEntity)
+
+    @Delete
+    suspend fun deleteChecklistItem(item: ChecklistEntity)
 }
