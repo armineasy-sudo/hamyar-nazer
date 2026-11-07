@@ -2,29 +2,13 @@ package com.example.service
 
 import com.example.data.ChecklistEntity
 import com.example.data.ProjectEntity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
- * تولیدکننده گزارش محلی (آفلاین) برای همیار ناظر.
- * مطابق الزامات نسخه اول:
- * - مقدمه کوتاه + بدنه
- * - بدون سربرگ خودکار (شهرداری، نظام مهندسی، شماره پرونده و...) مگر کاربر بخواهد
- * - گزینه روشن/خاموش کردن ارجاع به مقررات
- * - تمایز موارد تأییدشده، مغایرت، نیازمند اصلاح و بررسی‌نشده
- * - عدم اختراع اطلاعات
+ * تولید پیش‌نویس محلی گزارش؛ این کلاس تأییدیه یا گزارش رسمی صادر نمی‌کند.
+ * فقط اطلاعاتی را منعکس می‌کند که در چک‌لیست ثبت شده‌اند.
  */
 object ReportGenerator {
-
-    enum class ReportType {
-        INITIAL,           // بازدید اولیه
-        STAGE,             // مرحله‌ای
-        NON_CONFORMANCE,   // مغایرت
-        FOLLOW_UP,         // پیگیری رفع مغایرت
-        FINAL,             // نهایی
-        INCOMPLETE         // ناقص / نیازمند بررسی تکمیلی
-    }
+    enum class ReportType { INITIAL, STAGE, NON_CONFORMANCE, FOLLOW_UP, FINAL, INCOMPLETE }
 
     fun generate(
         project: ProjectEntity,
@@ -34,133 +18,59 @@ object ReportGenerator {
         includeAdminHeader: Boolean = false,
         engineerName: String = "مهندس ناظر"
     ): String {
-        val now = SimpleDateFormat("yyyy/MM/dd", Locale("fa", "IR")).format(Date())
-
-        val approved = checklists.filter { it.status == "COMPLETED" || it.status == "APPROVED" }
-        val needsCorrection = checklists.filter { it.status == "REQUIRES_CORRECTION" }
-        val rejected = checklists.filter { it.status == "REJECTED" || it.status == "FAILED" }
-        val unchecked = checklists.filter { it.status == "NOT_COMPLETED" || it.status == "UNCHECKED" }
-        val notApplicable = checklists.filter { it.status == "NOT_APPLICABLE" }
-
-        val intro = buildIntro(project, reportType, now)
-        val body = buildBody(
-            approved = approved,
-            needsCorrection = needsCorrection,
-            rejected = rejected,
-            unchecked = unchecked,
-            notApplicable = notApplicable,
-            includeRegulations = includeRegulations
-        )
-
-        val header = if (includeAdminHeader) {
-            """
-            به: شهرداری محترم منطقه ${project.district} / سازمان نظام مهندسی ساختمان
-            موضوع: گزارش نظارت تأسیسات مکانیکی - ${project.name}
-            
-            """.trimIndent() + "\n\n"
-        } else ""
-
-        val disclaimer = """
-            
-            ---
-            یادآوری: این گزارش بر اساس اطلاعات ثبت‌شده توسط مهندس ناظر تهیه شده است. 
-            نتیجه نهایی فنی، ارزیابی انطباق و تأیید ایمنی بر عهده مهندس مسئول است. 
-            ابزارهای محاسباتی و پیشنهادهای هوش مصنوعی جایگزین قضاوت حرفه‌ای نیستند.
-        """.trimIndent()
-
-        return header + intro + "\n\n" + body + disclaimer
-    }
-
-    private fun buildIntro(project: ProjectEntity, type: ReportType, date: String): String {
-        val typeText = when (type) {
+        val typeText = when (reportType) {
             ReportType.INITIAL -> "بازدید اولیه"
             ReportType.STAGE -> "بازدید مرحله‌ای"
             ReportType.NON_CONFORMANCE -> "بازدید ثبت مغایرت"
-            ReportType.FOLLOW_UP -> "بازدید پیگیری رفع مغایرت"
+            ReportType.FOLLOW_UP -> "بازدید پیگیری"
             ReportType.FINAL -> "بازدید نهایی"
             ReportType.INCOMPLETE -> "بازدید با اطلاعات ناقص"
         }
-
-        return """
-            در تاریخ $date از پروژه «${project.name}» واقع در ${project.city}، منطقه ${project.district}، 
-            با کاربری ${project.buildingType}، گروه ساختمانی ${project.buildingGroup}، 
-            تعداد طبقات ${project.floorsCount} و سیستم تأسیساتی «${project.mechanicalSystemType}» 
-            بازدید $typeText به عمل آمد. موارد زیر بر اساس مشاهدات میدانی و اطلاعات ثبت‌شده گزارش می‌شود.
-        """.trimIndent()
+        val intro = "پیرو ${typeText} از پروژه «${project.name}» واقع در ${project.city}، منطقه ${project.district}، موارد زیر بر اساس اطلاعات ثبت‌شده در چک‌لیست ارائه می‌شود:"
+        return intro + "\n\n" + buildBody(checklists, includeRegulations)
     }
 
-    private fun buildBody(
-        approved: List<ChecklistEntity>,
-        needsCorrection: List<ChecklistEntity>,
-        rejected: List<ChecklistEntity>,
-        unchecked: List<ChecklistEntity>,
-        notApplicable: List<ChecklistEntity>,
-        includeRegulations: Boolean
-    ): String {
-        val sb = StringBuilder()
+    private fun buildBody(items: List<ChecklistEntity>, includeRegulations: Boolean): String {
+        val approved = items.filter { it.status in setOf("COMPLETED", "APPROVED", "CONFIRMED") }
+        val corrections = items.filter { it.status in setOf("REQUIRES_CORRECTION", "NOT_APPROVED", "REJECTED", "FAILED") }
+        val notChecked = items.filter { it.status in setOf("NOT_COMPLETED", "UNCHECKED", "CANNOT_INSPECT") }
+        val notApplicable = items.filter { it.status == "NOT_APPLICABLE" }
+        val notInStage = items.filter { it.status == "NOT_IN_THIS_STAGE" }
 
-        if (approved.isNotEmpty()) {
-            sb.appendLine("۱. موارد تأییدشده:")
-            approved.forEach { item ->
-                sb.appendLine("- ${item.title}")
-                if (includeRegulations && item.regulationReference.isNotBlank()) {
-                    sb.appendLine("  (مرجع: ${item.regulationReference})")
-                }
-            }
-            sb.appendLine()
-        }
-
-        val discrepancies = needsCorrection + rejected
-        if (discrepancies.isNotEmpty()) {
-            sb.appendLine("۲. مغایرت‌ها و موارد نیازمند اصلاح:")
-            discrepancies.forEach { item ->
-                sb.appendLine("- ${item.title}")
-                if (item.inspectorNotes.isNotBlank()) {
-                    sb.appendLine("  توضیح مهندس: ${item.inspectorNotes}")
-                }
-                if (item.priority.isNotBlank()) {
-                    sb.appendLine("  اولویت: ${item.priority}")
-                }
-                if (includeRegulations && item.regulationReference.isNotBlank()) {
-                    sb.appendLine("  (مرجع: ${item.regulationReference})")
-                }
-            }
-            sb.appendLine()
-        }
-
-        if (unchecked.isNotEmpty()) {
-            sb.appendLine("۳. موارد بررسی‌نشده:")
-            unchecked.forEach { item ->
-                sb.appendLine("- ${item.title}")
-            }
-            sb.appendLine()
-        }
-
-        if (notApplicable.isNotEmpty()) {
-            sb.appendLine("۴. موارد غیرقابل اعمال در این پروژه:")
-            notApplicable.forEach { item ->
-                sb.appendLine("- ${item.title}")
-            }
-            sb.appendLine()
-        }
-
-        if (sb.isEmpty()) {
-            sb.appendLine("هیچ موردی در چک‌لیست ثبت نشده است. اطلاعات بازدید ناقص است.")
-        }
-
-        return sb.toString().trim()
+        val output = StringBuilder()
+        appendSection(output, "موارد تأییدشده", approved, includeRegulations, false)
+        appendSection(output, "موارد نیازمند اصلاح یا دارای مغایرت", corrections, includeRegulations, true)
+        appendSection(output, "موارد قابل بررسی نیستند / بررسی نشده‌اند", notChecked, includeRegulations, true)
+        appendSection(output, "موارد نامرتبط با این پروژه", notApplicable, includeRegulations, true)
+        appendSection(output, "مواردی که در این مرحله هنوز اجرا نشده‌اند", notInStage, includeRegulations, true)
+        if (output.isEmpty()) output.append("برای این بازدید نتیجه‌ای در چک‌لیست ثبت نشده است.")
+        return output.toString().trim()
     }
 
-    /** نسخه ساده برای کپی سریع در کارت گزارش */
+    private fun appendSection(
+        output: StringBuilder,
+        title: String,
+        items: List<ChecklistEntity>,
+        includeRegulations: Boolean,
+        includeNotes: Boolean
+    ) {
+        if (items.isEmpty()) return
+        output.appendLine("${title}:")
+        items.forEach { item ->
+            output.appendLine("• ${item.title}")
+            if (includeNotes && item.inspectorNotes.isNotBlank()) {
+                output.appendLine("  توضیح ناظر: ${item.inspectorNotes}")
+            }
+            if (includeRegulations && item.regulationReference.isNotBlank()) {
+                output.appendLine("  مرجع ثبت‌شده: ${item.regulationReference}")
+            }
+        }
+        output.appendLine()
+    }
+
     fun generateForCard(
         project: ProjectEntity,
         checklists: List<ChecklistEntity>,
         includeRegulations: Boolean = false
-    ): String = generate(
-        project = project,
-        checklists = checklists,
-        reportType = ReportType.STAGE,
-        includeRegulations = includeRegulations,
-        includeAdminHeader = false
-    )
+    ): String = generate(project, checklists, ReportType.STAGE, includeRegulations)
 }
