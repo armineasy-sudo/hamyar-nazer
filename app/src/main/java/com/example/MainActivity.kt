@@ -117,8 +117,31 @@ fun AppNavigation() {
                         }
                     },
                     onProjectSelected = { project ->
-                        selectedProject = project
-                        currentScreen = Screen.PROJECT_DETAIL
+                        scope.launch {
+                            // Replace only untouched sample rows; keep every item the supervisor edited.
+                            val existing = appDao.getChecklistsForProjectSync(project.id)
+                            val legacyTitles = ChecklistSeeder.getLegacySampleTitles()
+                            val obsoleteSamples = existing.filter {
+                                it.title in legacyTitles &&
+                                    it.status == "NOT_COMPLETED" &&
+                                    it.inspectorNotes.isBlank()
+                            }
+                            obsoleteSamples.forEach { appDao.deleteChecklistItem(it) }
+
+                            val preservedTitles = existing
+                                .filterNot { it in obsoleteSamples }
+                                .map { it.title }
+                                .toSet()
+                            val missingReferenceItems = ChecklistSeeder
+                                .getDefaultChecklists(project.id)
+                                .filterNot { it.title in preservedTitles }
+                            if (missingReferenceItems.isNotEmpty()) {
+                                appDao.insertChecklists(missingReferenceItems)
+                            }
+
+                            selectedProject = project
+                            currentScreen = Screen.PROJECT_DETAIL
+                        }
                     },
                     onNavigateBack = { currentScreen = Screen.DASHBOARD }
                 )
