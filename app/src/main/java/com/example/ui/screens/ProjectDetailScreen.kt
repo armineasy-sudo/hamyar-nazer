@@ -126,7 +126,7 @@ fun ProjectDetailScreen(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("گزارش‌ساز AI", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                    text = { Text("پیش‌نویس گزارش", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                     selectedContentColor = Color.White,
                     unselectedContentColor = Color.Gray
                 )
@@ -220,13 +220,13 @@ fun ProjectDetailScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    "تولید خودکار گزارش فنی مهندسی",
+                                    "تهیه پیش‌نویس گزارش نظارت",
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    "این افزونه بر اساس آخرین تغییر جزییات چک‌لیست‌های تایید شده و دارای نقص، یک متن اداری رسمی سازگار با سامانه نظام مهندسی با هوش مصنوعی آماده می‌کند.",
+                                    "این بخش فقط بر اساس وضعیت‌ها و توضیحات ثبت‌شده در چک‌لیست، یک پیش‌نویس قابل ویرایش تهیه می‌کند. متن نهایی باید توسط مهندس ناظر بررسی و تأیید شود.",
                                     color = Color.LightGray,
                                     fontSize = 11.sp,
                                     lineHeight = 16.sp,
@@ -251,11 +251,11 @@ fun ProjectDetailScreen(
                                     if (isGeneratingReport) {
                                         CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("درحال بررسی اسناد و نگارش هوشمند...", fontSize = 12.sp, color = Color.White)
+                                        Text("در حال تهیه پیش‌نویس...", fontSize = 12.sp, color = Color.White)
                                     } else {
                                         Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("نگارش و تنظیم پیش‌نویس با AI", fontSize = 12.sp, color = Color.White)
+                                        Text("ساخت پیش‌نویس گزارش", fontSize = 12.sp, color = Color.White)
                                     }
                                 }
                             }
@@ -572,59 +572,42 @@ fun ProjectDetailScreen(
                     ) {
                         Text(item.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 16.sp)
                         Text(
-                            text = "مرجع مقررات ملی: ${item.regulationReference} | اولویت ایمنی: ${item.priority}",
+                            text = if (item.regulationReference.isNotBlank()) "مرجع ثبت‌شده: ${item.regulationReference}" else "یادداشت و مرجع فنی فقط در صورت ثبت ناظر نمایش داده می‌شود.",
                             color = Color.Gray,
                             fontSize = 10.sp
                         )
 
                         HorizontalDivider(color = Color.DarkGray)
 
-                        // Status radio simulator buttons
-                        Text("تغییر وضعیت آزمون:", color = Color.LightGray, fontSize = 11.sp)
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        if (itemStatus == "COMPLETED") Color(0xFF10B981).copy(alpha = 0.15f) else Color.Transparent,
-                                        RoundedCornerShape(8.dp)
+                        Text("وضعیت این بند:", color = Color.LightGray, fontSize = 11.sp)
+                        val statusOptions = listOf(
+                            "NOT_COMPLETED" to "هنوز بررسی نشده",
+                            "COMPLETED" to "تأیید شد",
+                            "NOT_APPROVED" to "عدم تأیید",
+                            "REQUIRES_CORRECTION" to "نیازمند اصلاح",
+                            "CANNOT_INSPECT" to "قابل بررسی نیست",
+                            "NOT_APPLICABLE" to "نامرتبط با این پروژه",
+                            "NOT_IN_THIS_STAGE" to "در این مرحله اجرا نشده"
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            statusOptions.forEach { (value, label) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            if (itemStatus == value) Color(0xFF334155) else Color.Transparent,
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable { itemStatus = value }
+                                        .padding(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = itemStatus == value,
+                                        onClick = { itemStatus = value }
                                     )
-                                    .clickable { itemStatus = "COMPLETED" }
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(selected = itemStatus == "COMPLETED", onClick = { itemStatus = "COMPLETED" })
-                                Text("تکمیل شده و مورد تایید ناظر تاسیسات", color = Color.White, fontSize = 11.sp)
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        if (itemStatus == "REQUIRES_CORRECTION") Color(0xFFEF4444).copy(alpha = 0.15f) else Color.Transparent,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { itemStatus = "REQUIRES_CORRECTION" }
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(selected = itemStatus == "REQUIRES_CORRECTION", onClick = { itemStatus = "REQUIRES_CORRECTION" })
-                                Text("مشاهده نقص کارگاهی و لزوم اصلاح مجدد", color = Color.White, fontSize = 11.sp)
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        if (itemStatus == "NOT_COMPLETED") Color.Gray.copy(alpha = 0.15f) else Color.Transparent,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { itemStatus = "NOT_COMPLETED" }
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(selected = itemStatus == "NOT_COMPLETED", onClick = { itemStatus = "NOT_COMPLETED" })
-                                Text("عدم اجرا / در حال بررسی در مراحل آتی", color = Color.White, fontSize = 11.sp)
+                                    Text(label, color = Color.White, fontSize = 11.sp)
+                                }
                             }
                         }
 
@@ -769,7 +752,7 @@ fun ChecklistRowItem(
                 ) {
                     Text(
                         text = when (item.status) {
-                            "COMPLETED" -> "تایید شد"
+                            "COMPLETED" -> "تأیید شد"
                             "REQUIRES_CORRECTION" -> "نیاز به اصلاح"
                             else -> "عدم اجرا"
                         },
