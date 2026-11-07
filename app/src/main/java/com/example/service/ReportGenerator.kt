@@ -33,14 +33,16 @@ object ReportGenerator {
     private fun buildBody(items: List<ChecklistEntity>, includeRegulations: Boolean): String {
         val approved = items.filter { it.status in setOf("COMPLETED", "APPROVED", "CONFIRMED") }
         val corrections = items.filter { it.status in setOf("REQUIRES_CORRECTION", "NOT_APPROVED", "REJECTED", "FAILED") }
-        val notChecked = items.filter { it.status in setOf("NOT_COMPLETED", "UNCHECKED") }\n        val cannotInspect = items.filter { it.status == "CANNOT_INSPECT" }
+        val notChecked = items.filter { it.status in setOf("NOT_COMPLETED", "UNCHECKED") }
+        val cannotInspect = items.filter { it.status == "CANNOT_INSPECT" }
         val notApplicable = items.filter { it.status == "NOT_APPLICABLE" }
         val notInStage = items.filter { it.status == "NOT_IN_THIS_STAGE" }
 
         val output = StringBuilder()
         appendSection(output, "موارد تأییدشده", approved, includeRegulations, false)
         appendSection(output, "موارد نیازمند اصلاح یا دارای مغایرت", corrections, includeRegulations, true)
-        appendSection(output, "موارد هنوز بررسی‌نشده", notChecked, includeRegulations, true)\n        appendSection(output, "مواردی که امکان بررسی آن‌ها وجود نداشته است", cannotInspect, includeRegulations, true)
+        appendSection(output, "موارد هنوز بررسی‌نشده", notChecked, includeRegulations, true)
+        appendSection(output, "مواردی که امکان بررسی آن‌ها وجود نداشته است", cannotInspect, includeRegulations, true)
         appendSection(output, "موارد نامرتبط با این پروژه", notApplicable, includeRegulations, true)
         appendSection(output, "مواردی که در این مرحله هنوز اجرا نشده‌اند", notInStage, includeRegulations, true)
         if (output.isEmpty()) output.append("برای این بازدید نتیجه‌ای در چک‌لیست ثبت نشده است.")
