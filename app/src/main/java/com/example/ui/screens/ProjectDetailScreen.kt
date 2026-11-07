@@ -325,213 +325,21 @@ fun ProjectDetailScreen(
                 }
 
                 2 -> {
-                    // TAB 2: BLUEPRINT ANNOTATOR / MECHANICAL DRAWINGS ASSISTANT
-                    val drScroll = rememberScrollState()
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .verticalScroll(drScroll),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.fillMaxSize().padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    "سیستم هوشمند انطباق‌سنج نقشه‌ها",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Select Plan types
-                                Text("انتخاب پلان مورد بررسی:", color = Color.Gray, fontSize = 11.sp)
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    PlanTypePill(
-                                        title = "موتورخانه",
-                                        isSelected = selectedFileType == "BOILER_ROOM",
-                                        onClick = { selectedFileType = "BOILER_ROOM" },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    PlanTypePill(
-                                        title = "آبرسانی",
-                                        isSelected = selectedFileType == "WATER_MUNICIPAL",
-                                        onClick = { selectedFileType = "WATER_MUNICIPAL" },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    PlanTypePill(
-                                        title = "دودکش",
-                                        isSelected = selectedFileType == "CHIMNEY_DUCT",
-                                        onClick = { selectedFileType = "CHIMNEY_DUCT" },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    PlanTypePill(
-                                        title = "اطفاء حریق",
-                                        isSelected = selectedFileType == "FIRE_PROTECTION",
-                                        onClick = { selectedFileType = "FIRE_PROTECTION" },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                // Dashed Drawing Simulator Upload Box
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(140.dp)
-                                        .border(
-                                            BorderStroke(2.dp, Color(0xFF3B82F6)),
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        .background(Color(0xFF0F172A), RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            uploadFileName = when (selectedFileType) {
-                                                "BOILER_ROOM" -> "BoilerRoom-Plan-Rev3_Floor-B2.pdf"
-                                                "WATER_MUNICIPAL" -> "SanitaryWater-WaterMetreRiser-V2.pdf"
-                                                "CHIMNEY_DUCT" -> "Chimney-KitchenRiserGas_Section.pdf"
-                                                "FIRE_PROTECTION" -> "FireSprinkler-HydrantZoning-01.pdf"
-                                                else -> "Blueprint.pdf"
-                                            }
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    "نقشه مصوب با موفقیت بارگذاری شد.",
-                                                    Toast.LENGTH_SHORT
-                                                )
-                                                .show()
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (uploadFileName.isEmpty()) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(
-                                                imageVector = Icons.Default.AddCircle,
-                                                contentDescription = null,
-                                                tint = Color(0xFF3B82F6),
-                                                modifier = Modifier.size(36.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                "بارگذاری نقشه‌های تاسیسات (فرمت PDF / CAD)",
-                                                color = Color.LightGray,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp
-                                            )
-                                            Text(
-                                                "برای شبیه‌سازی واردکردن نقشه، ضربه بزنید.",
-                                                color = Color.Gray,
-                                                fontSize = 9.sp,
-                                                modifier = Modifier.padding(top = 2.dp)
-                                            )
-                                        }
-                                    } else {
-                                        // Visual simulation of loaded details
-                                        Column(
-                                            modifier = Modifier.padding(16.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Done,
-                                                contentDescription = null,
-                                                tint = Color(0xFF10B981),
-                                                modifier = Modifier.size(32.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            Text(uploadFileName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                            Text("نقشه مکانیکی تایید شده آماده واکاوی مغایرت‌ها", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.padding(top = 2.dp))
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Button(
-                                    onClick = {
-                                        if (uploadFileName.isEmpty()) {
-                                            Toast.makeText(context, "لطفا ابتدا با کلیک روی کادر، نقشه را لود فرضی کنید.", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            isAnalyzingDrawing = true
-                                            scope.launch {
-                                                val details = when (selectedFileType) {
-                                                    "BOILER_ROOM" -> "۲ عدد دیگ چدنی شوفاژ پکیج، پمپ گردش ۴ اینچ، مخزن انبساط بسته فاقد لوله سرریز مستقیم به اتمسفر"
-                                                    "WATER_MUNICIPAL" -> "کلکتور برگشت بهداشتی گالوانیزه ۱.۵ اینچ، لوله توزیع آب سرد ۲ اینچ ساختمان"
-                                                    "CHIMNEY_DUCT" -> "مسیر دودکشی آشپزخانه متقاطع با کانال تخلیه هواکش توالت"
-                                                    "FIRE_PROTECTION" -> "کلکتور اسپرینکلر مجهز به شیرهای ایزوله و پرشر سوویچ بدون هدر تخلیه ثانویه"
-                                                    else -> "تجهیزات گوناگون"
-                                                }
-                                                drawingResultText = GeminiService.analyzeMechanicalDrawing(selectedFileType, details)
-                                                isAnalyzingDrawing = false
-                                            }
-                                        }
-                                    },
-                                    enabled = !isAnalyzingDrawing,
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    if (isAnalyzingDrawing) {
-                                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("در حال بررسی متن و تحلیل انطباق با مباحث مقررات...", fontSize = 12.sp, color = Color.White)
-                                    } else {
-                                        Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("واکاوی و اشکال‌زدایی اتوماتیک نقشه با AI", fontSize = 12.sp, color = Color.White)
-                                    }
-                                }
-                            }
-                        }
-
-                        if (drawingResultText.isNotEmpty()) {
-                            Text(
-                                "گزارش همگام‌سازی و مغایرت‌های فنی مقررات ملی ساختمان",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-
-                            // Highlighted Warnings box based on generated simulation
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Text(
-                                        text = drawingResultText,
-                                        color = Color.LightGray,
-                                        fontSize = 11.sp,
-                                        lineHeight = 17.sp,
-                                        textAlign = TextAlign.Right
-                                    )
-                                }
-                            }
-
-                            Button(
-                                onClick = {
-                                    drawingResultText = ""
-                                    uploadFileName = ""
-                                    Toast.makeText(context, "آنالیز نقشه ریست شد.", Toast.LENGTH_SHORT).show()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("تخلیه نتایج واکاوی", fontSize = 12.sp)
-                            }
-                        }
+                        Icon(imageVector = Icons.Default.Description, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(48.dp))
+                        Text("بررسی نقشه‌ها", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            "این قابلیت هنوز فعال نشده است. در نسخه فعلی هیچ نقشه‌ای بارگذاری یا تحلیل نمی‌شود و نتیجه ساختگی نمایش داده نخواهد شد.",
+                            color = Color.LightGray, fontSize = 12.sp, lineHeight = 19.sp, textAlign = TextAlign.Center
+                        )
+                        Text(
+                            "به‌زودی پس از آماده‌سازی امکان بررسی نقشه‌های مصوب تأسیسات مکانیکی اضافه می‌شود.",
+                            color = Color.Gray, fontSize = 11.sp, textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -718,7 +526,7 @@ fun ChecklistRowItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "مرجع: ${item.regulationReference}",
+                            text = if (item.regulationReference.isNotBlank()) "مرجع ثبت‌شده: ${item.regulationReference}" else "مرجع ثبت نشده",
                             color = Color.Gray,
                             fontSize = 10.sp
                         )
@@ -743,7 +551,7 @@ fun ChecklistRowItem(
                         .background(
                             color = when (item.status) {
                                 "COMPLETED" -> Color(0xFF10B981).copy(alpha = 0.15f)
-                                "REQUIRES_CORRECTION" -> Color(0xFFEF4444).copy(alpha = 0.15f)
+                                "REQUIRES_CORRECTION", "NOT_APPROVED" -> Color(0xFFEF4444).copy(alpha = 0.15f)
                                 else -> Color.Gray.copy(alpha = 0.15f)
                             },
                             shape = RoundedCornerShape(6.dp)
@@ -753,12 +561,16 @@ fun ChecklistRowItem(
                     Text(
                         text = when (item.status) {
                             "COMPLETED" -> "تأیید شد"
-                            "REQUIRES_CORRECTION" -> "نیاز به اصلاح"
-                            else -> "عدم اجرا"
+                            "NOT_APPROVED" -> "عدم تأیید"
+                            "REQUIRES_CORRECTION" -> "نیازمند اصلاح"
+                            "CANNOT_INSPECT" -> "قابل بررسی نیست"
+                            "NOT_APPLICABLE" -> "نامرتبط"
+                            "NOT_IN_THIS_STAGE" -> "در این مرحله اجرا نشده"
+                            else -> "بررسی نشده"
                         },
                         color = when (item.status) {
                             "COMPLETED" -> Color(0xFF10B981)
-                            "REQUIRES_CORRECTION" -> Color(0xFFEF4444)
+                            "REQUIRES_CORRECTION", "NOT_APPROVED" -> Color(0xFFEF4444)
                             else -> Color.Gray
                         },
                         fontSize = 9.sp,
