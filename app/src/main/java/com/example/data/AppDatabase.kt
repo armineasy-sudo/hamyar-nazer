@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReportVersionEntity::class,
         UserProfile::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -101,6 +101,32 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Version 4 separates reusable checklist templates from per-project checklist rows.
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS checklist_templates (
+                        id TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        regulationReference TEXT,
+                        mabhasNumber TEXT,
+                        isMandatory INTEGER NOT NULL,
+                        isGasRelated INTEGER NOT NULL,
+                        isCustom INTEGER NOT NULL,
+                        source TEXT NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                """.trimIndent())
+
+                // ChecklistEntity declares this index; create it for databases upgraded from v3.
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_checklist_items_projectId ON checklist_items(projectId)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -108,8 +134,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "inspector_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                .build()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .build()
                 INSTANCE = instance
                 instance
             }
