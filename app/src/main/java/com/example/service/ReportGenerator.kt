@@ -18,12 +18,12 @@ import java.util.Locale
 object ReportGenerator {
 
     enum class ReportType {
-        INITIAL,           // بازدید اولیه
-        STAGE,             // مرحله‌ای
-        NON_CONFORMANCE,   // مغایرت
-        FOLLOW_UP,         // پیگیری رفع مغایرت
-        FINAL,             // نهایی
-        INCOMPLETE         // ناقص / نیازمند بررسی تکمیلی
+        INITIAL,
+        STAGE,
+        NON_CONFORMANCE,
+        FOLLOW_UP,
+        FINAL,
+        INCOMPLETE
     }
 
     fun generate(
@@ -54,7 +54,7 @@ object ReportGenerator {
 
         val header = if (includeAdminHeader) {
             """
-            به: شهرداری محترم منطقه ${project.district} / سازمان نظام مهندسی ساختمان
+            به: شهرداری محترم منطقه ${project.district ?: "—"} / سازمان نظام مهندسی ساختمان
             موضوع: گزارش نظارت تأسیسات مکانیکی - ${project.name}
             
             """.trimIndent() + "\n\n"
@@ -82,9 +82,9 @@ object ReportGenerator {
         }
 
         return """
-            در تاریخ $date از پروژه «${project.name}» واقع در ${project.city}، منطقه ${project.district}، 
-            با کاربری ${project.buildingType}، گروه ساختمانی ${project.buildingGroup}، 
-            تعداد طبقات ${project.floorsCount} و سیستم تأسیساتی «${project.mechanicalSystemType}» 
+            در تاریخ $date از پروژه «${project.name}» واقع در ${project.city}${project.district?.let { "، $it" } ?: ""}، 
+            با کاربری ${project.buildingType}، گروه ساختمانی ${project.selectedBuildingGroup}، 
+            تعداد طبقات ${project.floorsCount} و متراژ مؤثر ${project.effectiveArea.toInt()} مترمربع 
             بازدید $typeText به عمل آمد. موارد زیر بر اساس مشاهدات میدانی و اطلاعات ثبت‌شده گزارش می‌شود.
         """.trimIndent()
     }
@@ -118,9 +118,6 @@ object ReportGenerator {
                 if (item.inspectorNotes.isNotBlank()) {
                     sb.appendLine("  توضیح مهندس: ${item.inspectorNotes}")
                 }
-                if (item.priority.isNotBlank()) {
-                    sb.appendLine("  اولویت: ${item.priority}")
-                }
                 if (includeRegulations && item.regulationReference.isNotBlank()) {
                     sb.appendLine("  (مرجع: ${item.regulationReference})")
                 }
@@ -151,7 +148,6 @@ object ReportGenerator {
         return sb.toString().trim()
     }
 
-    /** نسخه ساده برای کپی سریع در کارت گزارش */
     fun generateForCard(
         project: ProjectEntity,
         checklists: List<ChecklistEntity>,
