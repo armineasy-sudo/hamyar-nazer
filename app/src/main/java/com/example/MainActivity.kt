@@ -11,11 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
-import com.example.data.AppDatabase
-import com.example.data.ChecklistSeeder
-import com.example.data.ProjectEntity
-import com.example.data.SampleDataSeeder
-import com.example.data.SyncManager
+import com.example.data.*
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.flow.flowOf
@@ -30,6 +26,7 @@ enum class Screen {
     VISITS,
     CHECKLIST,
     REPORT_VERSIONS,
+    USER_PROFILE,
     TOOLS,
     SETTINGS
 }
@@ -90,10 +87,11 @@ fun AppNavigation() {
         if (selectedVisitId > 0) appDao.getReportVersions(selectedVisitId) else flowOf(emptyList())
     }.collectAsState(initial = emptyList())
 
+    val userProfile by remember { appDao.getUserProfile() }.collectAsState(initial = null)
+
     val activeCount = projectsList.count { it.status == "ACTIVE" }
     val archivedCount = projectsList.count { it.status == "ARCHIVED" }
 
-    // وضعیت همگام‌سازی آفلاین (ساده)
     val syncStatusText = SyncManager.getStatusText(null)
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -166,6 +164,16 @@ fun AppNavigation() {
                 )
             }
 
+            Screen.USER_PROFILE -> {
+                UserProfileScreen(
+                    profile = userProfile ?: UserProfile(),
+                    onSaveProfile = { profile ->
+                        scope.launch { appDao.insertOrUpdateProfile(profile) }
+                    },
+                    onNavigateBack = { currentScreen = Screen.SETTINGS }
+                )
+            }
+
             Screen.VISITS -> {
                 if (selectedProject != null) {
                     VisitFormScreen(
@@ -194,7 +202,11 @@ fun AppNavigation() {
             }
 
             Screen.TOOLS -> ToolsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
-            Screen.SETTINGS -> SettingsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
+
+            Screen.SETTINGS -> SettingsScreen(
+                onNavigateBack = { currentScreen = Screen.DASHBOARD },
+                onNavigateToProfile = { currentScreen = Screen.USER_PROFILE }
+            )
         }
     }
 }
