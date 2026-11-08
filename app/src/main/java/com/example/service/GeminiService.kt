@@ -14,7 +14,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object GeminiService {
-    private const val GEMINI_API_KEY = "dummy_key_for_build"
+   private const val GEMINI_API_KEY = "AQ.Ab8RN6Iog0Ns3rQF7ZQZJ7Z-gd_AYfwGI60CcGhDiDT4vIRU2g"
     private const val TAG = "GeminiService"
 
     private val client = OkHttpClient.Builder()
