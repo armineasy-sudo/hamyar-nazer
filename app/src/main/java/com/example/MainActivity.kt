@@ -12,10 +12,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.AppDatabase
-import com.example.data.InspectionVisitEntity
 import com.example.data.ProjectEntity
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 enum class Screen {
@@ -60,7 +60,7 @@ fun AppNavigation() {
         if (selectedProject != null) {
             appDao.getVisitsForProject(selectedProject!!.id)
         } else {
-            kotlinx.coroutines.flow.flowOf(emptyList())
+            flowOf(emptyList())
         }
     }.collectAsState(initial = emptyList())
 
@@ -120,6 +120,9 @@ fun AppNavigation() {
                                     appDao.updateVisit(visit)
                                 }
                             }
+                        },
+                        onDeleteVisit = { visit ->
+                            scope.launch { appDao.deleteVisit(visit) }
                         },
                         onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
                     )
