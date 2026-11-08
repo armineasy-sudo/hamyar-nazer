@@ -104,6 +104,15 @@ fun VisitFormScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                item {
+                    Text(
+                        text = "تاریخچه بازدیدها (${visits.size})",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
                 items(visits, key = { it.id }) { visit ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
