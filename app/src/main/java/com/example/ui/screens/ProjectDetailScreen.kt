@@ -21,6 +21,7 @@ import com.example.data.ProjectEntity
 fun ProjectDetailScreen(
     project: ProjectEntity,
     onNavigateToVisits: () -> Unit,
+    onNavigateToChecklist: () -> Unit,
     onArchiveProject: (ProjectEntity) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -64,7 +65,6 @@ fun ProjectDetailScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Project Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
@@ -94,7 +94,17 @@ fun ProjectDetailScreen(
                 }
             }
 
-            // Actions
+            Button(
+                onClick = onNavigateToChecklist,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Checklist, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("چک‌لیست نظارت", fontSize = 16.sp)
+            }
+
             Button(
                 onClick = onNavigateToVisits,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
