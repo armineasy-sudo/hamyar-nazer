@@ -27,28 +27,49 @@ import com.example.data.ProjectEntity
 @Composable
 fun ProjectListScreen(
     projects: List<ProjectEntity>,
-    onAddProject: (name: String, city: String, district: String, group: String, type: String, floors: Int, area: Double, system: String) -> Unit,
+    onAddProject: (ProjectEntity) -> Unit,
     onProjectSelected: (ProjectEntity) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Active, 1 = Archived
+    var selectedTab by remember { mutableStateOf(0) }
 
     // Form states
     var projName by remember { mutableStateOf("") }
+    var projOwner by remember { mutableStateOf("") }
     var projCity by remember { mutableStateOf("تهران") }
     var projDistrict by remember { mutableStateOf("") }
-    var projGroup by remember { mutableStateOf("ج") } // الف، ب، ج، د
-    var projType by remember { mutableStateOf("مسکونی") } // مسکونی، تجاری، اداری ...
+    var projType by remember { mutableStateOf("مسکونی") }
     var projFloors by remember { mutableStateOf("") }
     var projArea by remember { mutableStateOf("") }
-    var projSystem by remember { mutableStateOf("کولر آبی و رادیاتور") } // چیلر، تبريد، اسپليت
+    var selectedGroup by remember { mutableStateOf("ج") }
+    var groupChangedByUser by remember { mutableStateOf(false) }
+
+    val floorsInt = projFloors.toIntOrNull() ?: 0
+    val areaDouble = projArea.toDoubleOrNull() ?: 0.0
+
+    // محاسبه گروه پیشنهادی طبق مبحث ۲
+    val suggestedGroup = remember(floorsInt, areaDouble) {
+        when {
+            floorsInt <= 0 && areaDouble <= 0 -> ""
+            floorsInt <= 2 && areaDouble <= 600 -> "الف"
+            floorsInt in 3..5 || areaDouble in 601.0..2000.0 -> "ب"
+            floorsInt in 6..10 || areaDouble in 2001.0..5000.0 -> "ج"
+            floorsInt > 10 || areaDouble > 5000 -> "د"
+            else -> "ج"
+        }
+    }
+
+    LaunchedEffect(suggestedGroup) {
+        if (!groupChangedByUser && suggestedGroup.isNotEmpty()) {
+            selectedGroup = suggestedGroup
+        }
+    }
 
     val filteredProjects = projects.filter {
-        val matchesSearch = it.name.contains(searchQuery, ignoreCase = true) || 
-                            it.city.contains(searchQuery, ignoreCase = true) ||
-                            it.mechanicalSystemType.contains(searchQuery, ignoreCase = true)
+        val matchesSearch = it.name.contains(searchQuery, ignoreCase = true) ||
+                            it.city.contains(searchQuery, ignoreCase = true)
         val matchesTab = if (selectedTab == 0) it.status == "ACTIVE" else it.status == "ARCHIVED"
         matchesSearch && matchesTab
     }
@@ -82,20 +103,17 @@ fun ProjectListScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            // Search Input
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("جستجو در پروژه‌ها، شهر، نوع تاسیسات...", color = Color.Gray, fontSize = 13.sp) },
+                placeholder = { Text("جستجو در پروژه‌ها...", color = Color.Gray, fontSize = 13.sp) },
                 leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFF3B82F6),
                     unfocusedBorderColor = Color.DarkGray,
                     focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedPlaceholderColor = Color.Gray,
-                    unfocusedPlaceholderColor = Color.Gray
+                    unfocusedTextColor = Color.White
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -103,7 +121,6 @@ fun ProjectListScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tab bar
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color(0xFF1E293B),
@@ -140,20 +157,13 @@ fun ProjectListScreen(
 
             if (filteredProjects.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = if (selectedTab == 0) "هیچ پروژه فعالی با این معیار یافت نشد." else "هیچ پروژه‌ای آرشیو نشده است.",
-                            color = Color.LightGray,
-                            fontSize = 13.sp
-                        )
-                    }
+                    Text(
+                        text = if (selectedTab == 0) "هیچ پروژه فعالی یافت نشد." else "هیچ پروژه‌ای آرشیو نشده است.",
+                        color = Color.LightGray
+                    )
                 }
             } else {
                 LazyColumn(
@@ -167,68 +177,76 @@ fun ProjectListScreen(
             }
         }
 
-        // Create Project Dialog
         if (showAddDialog) {
             AlertDialog(
                 onDismissRequest = { showAddDialog = false },
-                title = { Text("ثبت و احراز پروژه جدید نظارتی", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White) },
+                title = { Text("ثبت پروژه جدید", fontWeight = FontWeight.Bold, color = Color.White) },
                 containerColor = Color(0xFF1E293B),
                 confirmButton = {
                     Button(
                         onClick = {
-                            if (projName.isBlank() || projDistrict.isBlank() || projFloors.isBlank() || projArea.isBlank()) {
-                                // Simple validations skipped
-                            } else {
-                                onAddProject(
-                                    projName,
-                                    projCity,
-                                    projDistrict,
-                                    projGroup,
-                                    projType,
-                                    projFloors.toIntOrNull() ?: 1,
-                                    projArea.toDoubleOrNull() ?: 0.0,
-                                    projSystem
+                            if (projName.isNotBlank() && floorsInt > 0 && areaDouble > 0) {
+                                val newProject = ProjectEntity(
+                                    name = projName,
+                                    ownerName = projOwner.ifBlank { null },
+                                    city = projCity,
+                                    district = projDistrict.ifBlank { null },
+                                    buildingType = projType,
+                                    floorsCount = floorsInt,
+                                    effectiveArea = areaDouble,
+                                    suggestedBuildingGroup = suggestedGroup,
+                                    selectedBuildingGroup = selectedGroup,
+                                    groupChangedByUser = groupChangedByUser,
+                                    status = "ACTIVE"
                                 )
-                                // Clear form
+                                onAddProject(newProject)
                                 projName = ""
+                                projOwner = ""
                                 projDistrict = ""
                                 projFloors = ""
                                 projArea = ""
+                                groupChangedByUser = false
                                 showAddDialog = false
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
                     ) {
-                        Text("ثبت پرونده کارگاهی", color = Color.White, fontSize = 12.sp)
+                        Text("ثبت پروژه", color = Color.White)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddDialog = false }) {
-                        Text("انصراف", color = Color.LightGray, fontSize = 12.sp)
+                        Text("انصراف", color = Color.LightGray)
                     }
                 },
                 text = {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 400.dp)
-                            .background(Color.Transparent),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedTextField(
                             value = projName,
                             onValueChange = { projName = it },
-                            label = { Text("نام پروژه / کارفرما", color = Color.LightGray, fontSize = 11.sp) },
+                            label = { Text("نام پروژه", color = Color.LightGray, fontSize = 12.sp) },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = projOwner,
+                            onValueChange = { projOwner = it },
+                            label = { Text("نام مالک (اختیاری)", color = Color.LightGray, fontSize = 12.sp) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = projCity,
                                 onValueChange = { projCity = it },
-                                label = { Text("شهر مربوطه", color = Color.LightGray, fontSize = 11.sp) },
+                                label = { Text("شهر", color = Color.LightGray, fontSize = 12.sp) },
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
                                 modifier = Modifier.weight(1f)
@@ -236,39 +254,27 @@ fun ProjectListScreen(
                             OutlinedTextField(
                                 value = projDistrict,
                                 onValueChange = { projDistrict = it },
-                                label = { Text("منطقه شهرداری", color = Color.LightGray, fontSize = 11.sp) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Manual Input Simulating dropdowns for speed & simplicity
-                            OutlinedTextField(
-                                value = projGroup,
-                                onValueChange = { projGroup = it },
-                                label = { Text("گروه ساختمان (الف/ب/ج/د)", color = Color.LightGray, fontSize = 11.sp) },
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = projType,
-                                onValueChange = { projType = it },
-                                label = { Text("نوع کاربری ملک", color = Color.LightGray, fontSize = 11.sp) },
+                                label = { Text("منطقه", color = Color.LightGray, fontSize = 12.sp) },
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
                                 modifier = Modifier.weight(1f)
                             )
                         }
 
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = projType,
+                            onValueChange = { projType = it },
+                            label = { Text("نوع کاربری", color = Color.LightGray, fontSize = 12.sp) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = projFloors,
                                 onValueChange = { projFloors = it },
-                                label = { Text("تعداد طبقات", color = Color.LightGray, fontSize = 11.sp) },
+                                label = { Text("تعداد طبقات (از شالوده)", color = Color.LightGray, fontSize = 12.sp) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
@@ -277,7 +283,7 @@ fun ProjectListScreen(
                             OutlinedTextField(
                                 value = projArea,
                                 onValueChange = { projArea = it },
-                                label = { Text("متراژ زیربنا (تخمین)", color = Color.LightGray, fontSize = 11.sp) },
+                                label = { Text("متراژ مؤثر (m²)", color = Color.LightGray, fontSize = 12.sp) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
@@ -285,14 +291,28 @@ fun ProjectListScreen(
                             )
                         }
 
-                        OutlinedTextField(
-                            value = projSystem,
-                            onValueChange = { projSystem = it },
-                            label = { Text("نوع سیستم تاسیسات مکانیکی پروژه", color = Color.LightGray, fontSize = 11.sp) },
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        if (suggestedGroup.isNotEmpty()) {
+                            Text(
+                                text = "گروه پیشنهادی سیستم: $suggestedGroup",
+                                color = Color(0xFF10B981),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Text("گروه نهایی (قابل ویرایش):", color = Color.LightGray, fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("الف", "ب", "ج", "د").forEach { group ->
+                                FilterChip(
+                                    selected = selectedGroup == group,
+                                    onClick = {
+                                        selectedGroup = group
+                                        groupChangedByUser = true
+                                    },
+                                    label = { Text(group) }
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -306,16 +326,11 @@ fun ProjectItem(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -330,7 +345,6 @@ fun ProjectItem(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-
                 Box(
                     modifier = Modifier
                         .background(
@@ -340,7 +354,7 @@ fun ProjectItem(
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = if (project.status == "ACTIVE") "فعال کارگاهی" else "بایگانی پرونده",
+                        text = if (project.status == "ACTIVE") "فعال" else "بایگانی",
                         color = if (project.status == "ACTIVE") Color(0xFF10B981) else Color.Gray,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
@@ -348,51 +362,19 @@ fun ProjectItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Sub details
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("${project.city} - منطقه ${project.district}", color = Color.Gray, fontSize = 11.sp)
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("${project.floorsCount} طبقه | گروه ${project.buildingGroup}", color = Color.Gray, fontSize = 11.sp)
-                }
-            }
-
             Spacer(modifier = Modifier.height(8.dp))
 
-            HorizontalDivider(color = Color.DarkGray.copy(alpha = 0.5f), thickness = 1.dp)
+            Text(
+                text = "${project.city}${project.district?.let { " - منطقه $it" } ?: ""}",
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "سیستم: ${project.mechanicalSystemType}",
-                    color = Color.LightGray,
-                    fontSize = 11.sp,
-                )
-
-                Text(
-                    text = "مشاهده جزئیات و تاییدات...",
-                    color = Color(0xFF3B82F6),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
-                )
-            }
+            Text(
+                text = "${project.floorsCount} طبقه | گروه ${project.selectedBuildingGroup} | ${project.effectiveArea.toInt()} m²",
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
         }
     }
 }
