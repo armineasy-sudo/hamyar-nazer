@@ -31,11 +31,12 @@ object GeminiService {
     suspend fun generateSupervisionReport(
         project: ProjectEntity,
         checklists: List<ChecklistEntity>,
+        visitDateShamsi: String = "",
         includeRegulations: Boolean = true,
         tone: String = "SAFETY_WARNING"
     ): String = withContext(Dispatchers.IO) {
         if (!isApiKeyConfigured()) {
-            return@withContext generateSimulatedReport(project, checklists, includeRegulations)
+            return@withContext generateSimulatedReport(project, checklists, visitDateShamsi, includeRegulations)
         }
 
         val completed = checklists.filter { it.status == "COMPLETED" || it.status == "APPROVED" }
@@ -52,6 +53,12 @@ object GeminiService {
             "${it.title}$note$ref"
         }
 
+        val datePhrase = if (visitDateShamsi.isNotBlank()) {
+            "پیرو بازدید به عمل آمده در تاریخ $visitDateShamsi از پروژه ساختمانی مذکور"
+        } else {
+            "پیرو بازدید به عمل آمده از پروژه ساختمانی مذکور"
+        }
+
         val fixedPrompt = """
             در نقش یک مهندس ناظر تأسیسات مکانیکی رسمی عضو سازمان نظام مهندسی ساختمان ایران، یک گزارش نظارت فنی و ایمنی دقیق و رسمی برای ثبت در اتوماسیون نظام مهندسی و شهرداری تهیه کن.
 
@@ -62,6 +69,7 @@ object GeminiService {
             ۴. حضور یا عدم حضور مجری ذی‌صلاح در محل ساختمان از موارد مهم و الزامی است. اگر مجری ذی‌صلاح حضور نداشته باشد، حتماً در گزارش ذکر شود.
             ۵. هیچ اطلاع جعلی تولید نکن. فقط بر اساس داده‌های ارائه‌شده گزارش بنویس.
             ۶. زبان گزارش کاملاً فارسی رسمی و فنی باشد.
+            ۷. مقدمه گزارش باید حتماً با عبارت «$datePhrase» شروع شود.
 
             مشخصات پروژه:
             - نام پروژه: ${project.name}
@@ -79,7 +87,7 @@ object GeminiService {
             تعداد موارد بررسی‌نشده: ${incomplete.size}
 
             ساختار الزامی گزارش:
-            ۱. مقدمه کوتاه شامل مشخصات پروژه و تاریخ بازدید.
+            ۱. مقدمه شامل عبارت الزامی «$datePhrase» و مشخصات پروژه.
             ۲. وضعیت حضور مجری ذی‌صلاح (در صورت عدم حضور حتماً ذکر شود).
             ۳. موارد ایمنی مشاهده‌شده (کلاه، دستکش، کفش و سایر وسایل حفاظت فردی).
             ۴. موارد تأییدشده فنی.
@@ -91,13 +99,13 @@ object GeminiService {
         try {
             val responseText = callGeminiApi(fixedPrompt)
             if (responseText.isNullOrBlank()) {
-                generateSimulatedReport(project, checklists, includeRegulations)
+                generateSimulatedReport(project, checklists, visitDateShamsi, includeRegulations)
             } else {
                 responseText
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error generating report from Gemini, using simulation", e)
-            generateSimulatedReport(project, checklists, includeRegulations) +
+            generateSimulatedReport(project, checklists, visitDateShamsi, includeRegulations) +
                 "\n\n[توجه: این گزارش با هوش مصنوعی محلی تولید شد زیرا اتصال برقرار نشد]"
         }
     }
@@ -149,10 +157,17 @@ object GeminiService {
     private fun generateSimulatedReport(
         project: ProjectEntity,
         checklists: List<ChecklistEntity>,
+        visitDateShamsi: String,
         includeRegulations: Boolean
     ): String {
         val completed = checklists.filter { it.status == "COMPLETED" || it.status == "APPROVED" }
         val corrections = checklists.filter { it.status == "REQUIRES_CORRECTION" || it.status == "REJECTED" }
+
+        val datePhrase = if (visitDateShamsi.isNotBlank()) {
+            "پیرو بازدید به عمل آمده در تاریخ $visitDateShamsi از پروژه ساختمانی مذکور"
+        } else {
+            "پیرو بازدید به عمل آمده از پروژه ساختمانی مذکور"
+        }
 
         val completedBullets = if (completed.isEmpty()) {
             "• موردی هنوز به طور کامل تایید نشده است."
@@ -175,6 +190,8 @@ object GeminiService {
 
         return """
             گزارش نظارت تأسیسات مکانیکی (منطبق مقررات ملی ساختمان)
+
+            $datePhrase، مراتب زیر به اطلاع می‌رسد:
 
             پروژه: ${project.name}
             محل: ${project.city}${project.district?.let { "، $it" } ?: ""}
