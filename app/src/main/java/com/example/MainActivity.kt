@@ -131,8 +131,8 @@ fun AppNavigation() {
                         project = selectedProject!!,
                         onNavigateToVisits = { currentScreen = Screen.VISITS },
                         onArchiveProject = { updated ->
-                            scope.launch { appDao.updateProject(updated) }
-                            selectedProject = updated
+                            scope.launch { appDao.updateProject(updated.copy(updatedAt = System.currentTimeMillis())) }
+                            selectedProject = updated.copy(updatedAt = System.currentTimeMillis())
                         },
                         onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
                     )
@@ -153,6 +153,10 @@ fun AppNavigation() {
                                 } else {
                                     appDao.updateVisit(visit)
                                 }
+                                // به‌روزرسانی تاریخ ویرایش پروژه
+                                val updatedProject = selectedProject!!.copy(updatedAt = System.currentTimeMillis())
+                                appDao.updateProject(updatedProject)
+                                selectedProject = updatedProject
                             }
                         },
                         onDeleteVisit = { visit ->
