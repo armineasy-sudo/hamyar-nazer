@@ -7,9 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,12 +22,12 @@ import com.example.service.GeminiService
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToProfile: () -> Unit = {}
 ) {
     val scroll = rememberScrollState()
 
-    // Config options
-    var reportLengthPref by remember { mutableStateOf("استاندارد (یک صفحه)") } // استاندارد، خلاصه، توصیفی کامل
+    var reportLengthPref by remember { mutableStateOf("استاندارد (یک صفحه)") }
     var citationStylePref by remember { mutableStateOf("مقررات ملی کل کشور") }
 
     Scaffold(
@@ -54,6 +52,26 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // User Profile Button
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable { onNavigateToProfile() },
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF3B82F6))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("پروفایل مهندس", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("نام، شماره پروانه، امضا", color = Color.Gray, fontSize = 12.sp)
+                    }
+                    Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = Color.Gray)
+                }
+            }
+
             // API Key Status Banner
             Card(
                 colors = CardDefaults.cardColors(
@@ -80,9 +98,9 @@ fun SettingsScreen(
                             fontSize = 13.sp
                         )
                         Text(
-                            text = if (GeminiService.isApiKeyConfigured()) 
-                                "کلید اختصاصی GEMINI_API_KEY شناسایی شده و گزارش‌ها مستقیماً با مدل Gemini به صورت پویا تولید می‌شوند."
-                            else "کلید اختصاصی در پنل Secrets وارد نشده است. برنامه از الگوهای رسمی شبیه‌سازی مهندسی آفلاین استفاده می‌کند تا جریان تایید کارگاه مختل نشود.",
+                            text = if (GeminiService.isApiKeyConfigured())
+                                "کلید اختصاصی GEMINI_API_KEY شناسایی شده و گزارش‌ها مستقیماً با مدل Gemini تولید می‌شوند."
+                            else "کلید اختصاصی در پنل Secrets وارد نشده است. برنامه از الگوهای رسمی شبیه‌سازی مهندسی آفلاین استفاده می‌کند.",
                             color = Color.LightGray,
                             fontSize = 11.sp,
                             lineHeight = 15.sp,
@@ -92,17 +110,16 @@ fun SettingsScreen(
                 }
             }
 
-            // User Preferences Configuration Card
+            // User Preferences
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("تنظیمات تولید گزارش اداری ناظر", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    
+
                     HorizontalDivider(color = Color.DarkGray)
 
-                    // Length preference
                     Column {
                         Text("طول متن گزارش پیشنهادی:", color = Color.Gray, fontSize = 11.sp)
                         Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -122,7 +139,6 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Citation Preference
                     Column {
                         Text("مرجع قوانین و استانداردهای الحاقی:", color = Color.Gray, fontSize = 11.sp)
                         Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -142,7 +158,6 @@ fun SettingsScreen(
                 }
             }
 
-            // Expandable Roadmap Future Header
             Text(
                 "نقشه راه توسعه ماژول‌های اینده دستیار ناظر",
                 color = Color.White,
@@ -151,32 +166,29 @@ fun SettingsScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            // Electrical module
             RoadmapItem(
                 phase = "ماژول ناظر تاسیسات الکتریکی",
                 title = "چک‌لیست تست ارت، تابلو برق و اعلام حریق و سیم‌کشی",
                 status = "برنامه‌ریزی شده (نسخه ۱.۵)",
-                description = "افزودن تست‌های تخصصی چاه ارت ساختمان بر اساس مبحث ۱۳ مقررات ملی ساختمان، انطباق کابل‌کشی سیستم تهویه با تابلوهای فرعی و مانیتورینگ باتری دتکتورهای گازی.",
+                description = "افزودن تست‌های تخصصی چاه ارت ساختمان بر اساس مبحث ۱۳ مقررات ملی ساختمان.",
                 icon = Icons.Default.Star,
                 accentColor = Color(0xFFEC4899)
             )
 
-            // Structural module
             RoadmapItem(
                 phase = "ماژول ناظر سازه ساختمان",
                 title = "ثبت کیورینگ بتن، نتایج آزمایشگاهی و مغایرت تراز آرماتوربندی",
                 status = "برنامه‌ریزی شده (نسخه ۲.۰)",
-                description = "مستندسازی آزمایش اسلامپ بتن، بررسی ضخامت‌های جوش اسکلت فلزی با هوش مصنوعی تصویری، کنترل ارتعاش دال سقف‌های نوین و هشدارهای لرزه‌ای مبحث ۹ و ۱۰ مقررات ملی.",
+                description = "مستندسازی آزمایش اسلامپ بتن و بررسی ضخامت‌های جوش اسکلت فلزی.",
                 icon = Icons.Default.Star,
                 accentColor = Color(0xFF3B82F6)
             )
 
-            // Architectural module
             RoadmapItem(
                 phase = "ماژول ناظر معماری و ایمنی",
                 title = "انطباق پله‌های فرار، عایق کاری رطوبتی و ضخامت دیواری",
                 status = "برنامه‌ریزی شده (نسخه ۲.۵)",
-                description = "فرمولاسیون هوشمند طراحی طول بازوی رمپ پارکینگ مطابق مبحث ۴، انطباق ضوابط معلولین با نقشه‌ها، ثبت نتایج عایق‌کاری رطوبتی بام و مغایرت دیوار بر اساس مبحث ۱۹.",
+                description = "فرمولاسیون هوشمند طراحی طول بازوی رمپ پارکینگ مطابق مبحث ۴.",
                 icon = Icons.Default.Star,
                 accentColor = Color(0xFF10B981)
             )
