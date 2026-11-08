@@ -12,12 +12,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.AppDatabase
-import com.example.data.ChecklistEntity
-import com.example.data.ChecklistSeeder
 import com.example.data.ProjectEntity
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 enum class Screen {
@@ -36,7 +33,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                // Enforce Persian RTL Layout Direction
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     AppNavigation()
                 }
@@ -52,22 +48,11 @@ fun AppNavigation() {
     var engineerName by remember { mutableStateOf("") }
     var selectedProject by remember { mutableStateOf<ProjectEntity?>(null) }
 
-    // Room Database connections
     val database = remember { AppDatabase.getDatabase(context) }
     val appDao = remember { database.appDao() }
     val scope = rememberCoroutineScope()
 
-    // Query all projects
     val projectsList by remember { appDao.getAllProjects() }.collectAsState(initial = emptyList())
-
-    // Fetch checklists for the selected project
-    val activeProjectChecklists = remember(selectedProject) {
-        if (selectedProject != null) {
-            appDao.getChecklistsForProject(selectedProject!!.id)
-        } else {
-            kotlinx.coroutines.flow.flowOf(emptyList())
-        }
-    }.collectAsState(initial = emptyList())
 
     val activeCount = projectsList.count { it.status == "ACTIVE" }
     val archivedCount = projectsList.count { it.status == "ARCHIVED" }
@@ -75,9 +60,7 @@ fun AppNavigation() {
     Surface(modifier = Modifier.fillMaxSize()) {
         when (currentScreen) {
             Screen.LANDING -> {
-                LandingScreen(
-                    onEnterApp = { currentScreen = Screen.LOGIN }
-                )
+                LandingScreen(onEnterApp = { currentScreen = Screen.LOGIN })
             }
 
             Screen.LOGIN -> {
@@ -103,24 +86,9 @@ fun AppNavigation() {
             Screen.PROJECTS_LIST -> {
                 ProjectListScreen(
                     projects = projectsList,
-                    onAddProject = { name, city, district, group, type, floors, area, system ->
+                    onAddProject = { newProject ->
                         scope.launch {
-                            val newProject = ProjectEntity(
-                                name = name,
-                                city = city,
-                                district = district,
-                                buildingGroup = group,
-                                buildingType = type,
-                                floorsCount = floors,
-                                totalArea = area,
-                                mechanicalSystemType = system,
-                                status = "ACTIVE"
-                            )
-                            // Save project
-                            val projectId = appDao.insertProject(newProject)
-                            // Create and seed checklists
-                            val seedChecklists = ChecklistSeeder.getDefaultChecklists(projectId)
-                            appDao.insertChecklists(seedChecklists)
+                            appDao.insertProject(newProject)
                         }
                     },
                     onProjectSelected = { project ->
@@ -135,18 +103,11 @@ fun AppNavigation() {
                 if (selectedProject != null) {
                     ProjectDetailScreen(
                         project = selectedProject!!,
-                        checklists = activeProjectChecklists.value,
-                        onUpdateChecklist = { updatedItem ->
-                            scope.launch {
-                                appDao.updateChecklistItem(updatedItem)
-                            }
-                        },
-                        onArchiveProject = { updatedPrj ->
-                            scope.launch {
-                                appDao.updateProject(updatedPrj)
-                                // Refresh selected reference
-                                selectedProject = updatedPrj
-                            }
+                        checklists = emptyList(),
+                        onUpdateChecklist = { },
+                        onArchiveProject = { updated ->
+                            scope.launch { appDao.updateProject(updated) }
+                            selectedProject = updated
                         },
                         onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
                     )
@@ -156,15 +117,11 @@ fun AppNavigation() {
             }
 
             Screen.TOOLS -> {
-                ToolsScreen(
-                    onNavigateBack = { currentScreen = Screen.DASHBOARD }
-                )
+                ToolsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
             }
 
             Screen.SETTINGS -> {
-                SettingsScreen(
-                    onNavigateBack = { currentScreen = Screen.DASHBOARD }
-                )
+                SettingsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
             }
         }
     }
