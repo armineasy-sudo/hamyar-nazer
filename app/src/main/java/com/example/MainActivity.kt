@@ -58,12 +58,16 @@ fun AppNavigation() {
 
     val projectsList by remember { appDao.getAllProjects() }.collectAsState(initial = emptyList())
 
-    // افزودن پروژه‌های نمونه در اولین اجرا اگر پایگاه خالی باشد
+    // افزودن پروژه‌های نمونه و بازدیدها در اولین اجرا اگر پایگاه خالی باشد
     LaunchedEffect(projectsList) {
         if (!hasSeeded && projectsList.isEmpty()) {
             scope.launch {
                 SampleDataSeeder.getSampleProjects().forEach { project ->
-                    appDao.insertProject(project)
+                    val projectId = appDao.insertProject(project)
+                    val sampleVisits = SampleDataSeeder.getSampleVisits(projectId, project.name)
+                    sampleVisits.forEach { visit ->
+                        appDao.insertVisit(visit)
+                    }
                 }
             }
             hasSeeded = true
