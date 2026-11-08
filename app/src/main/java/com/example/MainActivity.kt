@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.AppDatabase
 import com.example.data.ProjectEntity
+import com.example.data.SampleDataSeeder
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.flow.flowOf
@@ -49,12 +50,25 @@ fun AppNavigation() {
     var currentScreen by remember { mutableStateOf(Screen.LANDING) }
     var engineerName by remember { mutableStateOf("") }
     var selectedProject by remember { mutableStateOf<ProjectEntity?>(null) }
+    var hasSeeded by remember { mutableStateOf(false) }
 
     val database = remember { AppDatabase.getDatabase(context) }
     val appDao = remember { database.appDao() }
     val scope = rememberCoroutineScope()
 
     val projectsList by remember { appDao.getAllProjects() }.collectAsState(initial = emptyList())
+
+    // افزودن پروژه‌های نمونه در اولین اجرا اگر پایگاه خالی باشد
+    LaunchedEffect(projectsList) {
+        if (!hasSeeded && projectsList.isEmpty()) {
+            scope.launch {
+                SampleDataSeeder.getSampleProjects().forEach { project ->
+                    appDao.insertProject(project)
+                }
+            }
+            hasSeeded = true
+        }
+    }
 
     val visitsList by remember(selectedProject?.id) {
         if (selectedProject != null) {
