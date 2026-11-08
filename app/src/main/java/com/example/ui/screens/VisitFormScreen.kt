@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.InspectionVisitEntity
@@ -25,6 +23,7 @@ fun VisitFormScreen(
     project: ProjectEntity,
     visits: List<InspectionVisitEntity>,
     onSaveVisit: (InspectionVisitEntity) -> Unit,
+    onDeleteVisit: (InspectionVisitEntity) -> Unit = {},
     onNavigateBack: () -> Unit
 ) {
     var showForm by remember { mutableStateOf(false) }
@@ -34,6 +33,9 @@ fun VisitFormScreen(
     var visitTime by remember { mutableStateOf("") }
     var executionStage by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("COMPLETED") }
+    var dateError by remember { mutableStateOf(false) }
+    var stageError by remember { mutableStateOf(false) }
 
     fun openForm(visit: InspectionVisitEntity? = null) {
         editingVisit = visit
@@ -41,7 +43,16 @@ fun VisitFormScreen(
         visitTime = visit?.visitTime ?: ""
         executionStage = visit?.executionStage ?: ""
         notes = visit?.notes ?: ""
+        status = visit?.status ?: "COMPLETED"
+        dateError = false
+        stageError = false
         showForm = true
+    }
+
+    fun validate(): Boolean {
+        dateError = visitDate.isBlank()
+        stageError = executionStage.isBlank()
+        return !dateError && !stageError
     }
 
     Scaffold(
@@ -50,7 +61,11 @@ fun VisitFormScreen(
                 title = {
                     Column {
                         Text("پیشرفت پروژه", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
-                        Text(project.name, color = Color.LightGray, fontSize = 12.sp)
+                        Text(
+                            "${project.name} — گروه ${project.selectedBuildingGroup}",
+                            color = Color.LightGray,
+                            fontSize = 12.sp
+                        )
                     }
                 },
                 navigationIcon = {
@@ -77,30 +92,56 @@ fun VisitFormScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("هنوز بازدیدی ثبت نشده است.", color = Color.Gray)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("هنوز بازدیدی ثبت نشده است.", color = Color.Gray)
+                    Text("با دکمه + بازدید جدید ثبت کنید.", color = Color.Gray, fontSize = 13.sp)
+                }
             }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(visits) { visit ->
+                items(visits, key = { it.id }) { visit ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                         onClick = { openForm(visit) }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = visit.visitDateShamsi,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = visit.visitDateShamsi,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = if (visit.status == "COMPLETED") "تکمیل" else "پیش‌نویس",
+                                    color = if (visit.status == "COMPLETED") Color(0xFF10B981) else Color(0xFFF59E0B),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = visit.executionStage,
                                 color = Color(0xFF3B82F6),
                                 fontSize = 13.sp
                             )
+                            if (!visit.visitTime.isNullOrBlank()) {
+                                Text(
+                                    text = "ساعت: ${visit.visitTime}",
+                                    color = Color.Gray,
+                                    fontSize = 12.sp
+                                )
+                            }
                             if (!visit.notes.isNullOrBlank()) {
                                 Text(
                                     text = visit.notes,
@@ -129,15 +170,15 @@ fun VisitFormScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            if (visitDate.isNotBlank() && executionStage.isNotBlank()) {
+                            if (validate()) {
                                 val visit = InspectionVisitEntity(
                                     id = editingVisit?.id ?: 0,
                                     projectId = project.id,
-                                    visitDateShamsi = visitDate,
-                                    visitTime = visitTime.ifBlank { null },
-                                    executionStage = executionStage,
-                                    notes = notes.ifBlank { null },
-                                    status = "COMPLETED"
+                                    visitDateShamsi = visitDate.trim(),
+                                    visitTime = visitTime.trim().ifBlank { null },
+                                    executionStage = executionStage.trim(),
+                                    notes = notes.trim().ifBlank { null },
+                                    status = status
                                 )
                                 onSaveVisit(visit)
                                 showForm = false
@@ -149,17 +190,33 @@ fun VisitFormScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showForm = false }) {
-                        Text("انصراف", color = Color.LightGray)
+                    Row {
+                        if (editingVisit != null) {
+                            TextButton(
+                                onClick = {
+                                    onDeleteVisit(editingVisit!!)
+                                    showForm = false
+                                }
+                            ) {
+                                Text("حذف", color = Color(0xFFEF4444))
+                            }
+                        }
+                        TextButton(onClick = { showForm = false }) {
+                            Text("انصراف", color = Color.LightGray)
+                        }
                     }
                 },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = visitDate,
-                            onValueChange = { visitDate = it },
+                            onValueChange = { visitDate = it; dateError = false },
                             label = { Text("تاریخ بازدید (شمسی)", color = Color.LightGray) },
                             placeholder = { Text("مثال: 1404/08/15", color = Color.Gray) },
+                            isError = dateError,
+                            supportingText = if (dateError) {
+                                { Text("تاریخ الزامی است", color = Color(0xFFEF4444)) }
+                            } else null,
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -172,6 +229,7 @@ fun VisitFormScreen(
                             value = visitTime,
                             onValueChange = { visitTime = it },
                             label = { Text("ساعت (اختیاری)", color = Color.LightGray) },
+                            placeholder = { Text("مثال: 10:30", color = Color.Gray) },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -182,9 +240,13 @@ fun VisitFormScreen(
 
                         OutlinedTextField(
                             value = executionStage,
-                            onValueChange = { executionStage = it },
+                            onValueChange = { executionStage = it; stageError = false },
                             label = { Text("مرحله اجرا", color = Color.LightGray) },
                             placeholder = { Text("مثال: لوله‌کشی طبقه اول", color = Color.Gray) },
+                            isError = stageError,
+                            supportingText = if (stageError) {
+                                { Text("مرحله اجرا الزامی است", color = Color(0xFFEF4444)) }
+                            } else null,
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -192,6 +254,20 @@ fun VisitFormScreen(
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        Text("وضعیت:", color = Color.LightGray, fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = status == "DRAFT",
+                                onClick = { status = "DRAFT" },
+                                label = { Text("پیش‌نویس") }
+                            )
+                            FilterChip(
+                                selected = status == "COMPLETED",
+                                onClick = { status = "COMPLETED" },
+                                label = { Text("تکمیل‌شده") }
+                            )
+                        }
 
                         OutlinedTextField(
                             value = notes,
