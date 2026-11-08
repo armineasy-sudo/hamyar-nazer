@@ -28,6 +28,7 @@ enum class Screen {
     PROJECT_DETAIL,
     VISITS,
     CHECKLIST,
+    REPORT_VERSIONS,
     TOOLS,
     SETTINGS
 }
@@ -52,6 +53,7 @@ fun AppNavigation() {
     var currentScreen by remember { mutableStateOf(Screen.LANDING) }
     var engineerName by remember { mutableStateOf("") }
     var selectedProject by remember { mutableStateOf<ProjectEntity?>(null) }
+    var selectedVisitId by remember { mutableStateOf(0L) }
     var hasSeeded by remember { mutableStateOf(false) }
 
     val database = remember { AppDatabase.getDatabase(context) }
@@ -81,6 +83,10 @@ fun AppNavigation() {
 
     val checklistsList by remember(selectedProject?.id) {
         if (selectedProject != null) appDao.getChecklistsForProject(selectedProject!!.id) else flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+
+    val reportVersions by remember(selectedVisitId) {
+        if (selectedVisitId > 0) appDao.getReportVersions(selectedVisitId) else flowOf(emptyList())
     }.collectAsState(initial = emptyList())
 
     val activeCount = projectsList.count { it.status == "ACTIVE" }
@@ -148,6 +154,13 @@ fun AppNavigation() {
                 } else currentScreen = Screen.PROJECTS_LIST
             }
 
+            Screen.REPORT_VERSIONS -> {
+                ReportVersionsScreen(
+                    versions = reportVersions,
+                    onNavigateBack = { currentScreen = Screen.VISITS }
+                )
+            }
+
             Screen.VISITS -> {
                 if (selectedProject != null) {
                     VisitFormScreen(
@@ -163,6 +176,13 @@ fun AppNavigation() {
                             }
                         },
                         onDeleteVisit = { visit -> scope.launch { appDao.deleteVisit(visit) } },
+                        onSaveReportVersion = { version ->
+                            scope.launch { appDao.insertReportVersion(version) }
+                        },
+                        onNavigateToReportVersions = {
+                            selectedVisitId = visitsList.firstOrNull()?.id ?: 0L
+                            currentScreen = Screen.REPORT_VERSIONS
+                        },
                         onNavigateBack = { currentScreen = Screen.PROJECT_DETAIL }
                     )
                 } else currentScreen = Screen.PROJECTS_LIST
