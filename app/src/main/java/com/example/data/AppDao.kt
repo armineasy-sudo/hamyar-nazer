@@ -34,7 +34,7 @@ interface AppDao {
     @Delete
     suspend fun deleteVisit(visit: InspectionVisitEntity)
 
-    // Project Checklists (ChecklistEntity)
+    // Project Checklists
     @Query("SELECT * FROM checklist_items WHERE projectId = :projectId ORDER BY id ASC")
     fun getChecklistsForProject(projectId: Long): Flow<List<ChecklistEntity>>
 
@@ -44,7 +44,7 @@ interface AppDao {
     @Update
     suspend fun updateChecklist(checklist: ChecklistEntity)
 
-    // Checklist Items (official + custom)
+    // Checklist Items
     @Query("SELECT * FROM checklist_items ORDER BY id ASC")
     fun getAllChecklistItems(): Flow<List<ChecklistItemEntity>>
 
@@ -64,4 +64,11 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReportVersion(report: ReportVersionEntity): Long
+
+    // User Profile
+    @Query("SELECT * FROM user_profile WHERE id = 1")
+    fun getUserProfile(): Flow<UserProfile?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdateProfile(profile: UserProfile)
 }
