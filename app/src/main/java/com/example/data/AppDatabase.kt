@@ -14,9 +14,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         InspectionVisitEntity::class,
         ChecklistItemEntity::class,
         InspectionItemResultEntity::class,
-        ReportVersionEntity::class
+        ReportVersionEntity::class,
+        UserProfile::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,13 +27,8 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        /**
-         * Migration امن از نسخه ۱ به ۲
-         * جدول‌های جدید اضافه می‌شوند و داده‌های قبلی حفظ می‌شوند.
-         */
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // جدول بازدید‌ها
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS inspection_visits (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -47,7 +43,6 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
 
-                // جدول چک‌لیست
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS checklist_items (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -63,7 +58,6 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
 
-                // جدول نتایج بندها
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS inspection_item_results (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -75,7 +69,6 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
 
-                // جدول نسخه‌های گزارش
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS report_versions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -92,6 +85,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS user_profile (
+                        id INTEGER PRIMARY KEY NOT NULL,
+                        fullName TEXT NOT NULL DEFAULT '',
+                        licenseNumber TEXT NOT NULL DEFAULT '',
+                        organizationName TEXT NOT NULL DEFAULT '',
+                        phone TEXT NOT NULL DEFAULT '',
+                        email TEXT NOT NULL DEFAULT '',
+                        signatureText TEXT NOT NULL DEFAULT ''
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -99,7 +108,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "inspector_database"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 INSTANCE = instance
                 instance
