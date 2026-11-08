@@ -3,7 +3,9 @@ package com.example.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -11,11 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.InspectionVisitEntity
 import com.example.data.ProjectEntity
+import com.example.service.ReportGenerator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +33,9 @@ fun VisitFormScreen(
 ) {
     var showForm by remember { mutableStateOf(false) }
     var editingVisit by remember { mutableStateOf<InspectionVisitEntity?>(null) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportText by remember { mutableStateOf("") }
+    var includeRegulations by remember { mutableStateOf(false) }
 
     var visitDate by remember { mutableStateOf("") }
     var visitTime by remember { mutableStateOf("") }
@@ -36,6 +44,8 @@ fun VisitFormScreen(
     var status by remember { mutableStateOf("COMPLETED") }
     var dateError by remember { mutableStateOf(false) }
     var stageError by remember { mutableStateOf(false) }
+
+    val clipboardManager = LocalClipboardManager.current
 
     fun openForm(visit: InspectionVisitEntity? = null) {
         editingVisit = visit
@@ -47,6 +57,17 @@ fun VisitFormScreen(
         dateError = false
         stageError = false
         showForm = true
+    }
+
+    fun generateReport() {
+        reportText = ReportGenerator.generate(
+            project = project,
+            checklists = emptyList(),
+            reportType = ReportGenerator.ReportType.STAGE,
+            includeRegulations = includeRegulations,
+            includeAdminHeader = false
+        )
+        showReportDialog = true
     }
 
     fun validate(): Boolean {
@@ -71,6 +92,11 @@ fun VisitFormScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "بازگشت", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { generateReport() }) {
+                        Icon(Icons.Default.Description, contentDescription = "تولید گزارش", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
@@ -288,6 +314,60 @@ fun VisitFormScreen(
                                 unfocusedTextColor = Color.White
                             ),
                             modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            )
+        }
+
+        if (showReportDialog) {
+            AlertDialog(
+                onDismissRequest = { showReportDialog = false },
+                title = { Text("پیش‌نویس گزارش", color = Color.White, fontWeight = FontWeight.Bold) },
+                containerColor = Color(0xFF1E293B),
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(reportText))
+                            showReportDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
+                    ) {
+                        Text("کپی متن")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showReportDialog = false }) {
+                        Text("بستن", color = Color.LightGray)
+                    }
+                },
+                text = {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            Checkbox(
+                                checked = includeRegulations,
+                                onCheckedChange = {
+                                    includeRegulations = it
+                                    generateReport()
+                                }
+                            )
+                            Text("ارجاع به مقررات", color = Color.White, fontSize = 13.sp)
+                        }
+                        OutlinedTextField(
+                            value = reportText,
+                            onValueChange = { reportText = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 300.dp)
+                                .verticalScroll(rememberScrollState()),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
                         )
                     }
                 }
