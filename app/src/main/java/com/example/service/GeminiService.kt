@@ -14,7 +14,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object GeminiService {
-   private const val GEMINI_API_KEY = "AQ.Ab8RN6Iog0Ns3rQF7ZQZJ7Z-gd_AYfwGI60CcGhDiDT4vIRU2g"
+    private const val GEMINI_API_KEY = "AQ.Ab8RN6Iog0Ns3rQF7ZQZJ7Z-gd_AYfwGI60CcGhDiDT4vIRU2g"
     private const val TAG = "GeminiService"
 
     private val client = OkHttpClient.Builder()
@@ -31,8 +31,8 @@ object GeminiService {
     suspend fun generateSupervisionReport(
         project: ProjectEntity,
         checklists: List<ChecklistEntity>,
-        includeRegulations: Boolean = false,
-        tone: String = "NORMAL"
+        includeRegulations: Boolean = true,
+        tone: String = "SAFETY_WARNING"
     ): String = withContext(Dispatchers.IO) {
         if (!isApiKeyConfigured()) {
             return@withContext generateSimulatedReport(project, checklists, includeRegulations)
@@ -43,24 +43,25 @@ object GeminiService {
         val incomplete = checklists.filter { it.status == "NOT_COMPLETED" || it.status == "UNCHECKED" }
 
         val completedText = if (completed.isEmpty()) "هیچ مورد تاییدشده‌ای ثبت نشده است."
-        else completed.joinToString("\n- ") { "${it.title}${if (includeRegulations && it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""}" }
+        else completed.joinToString("\n- ") { "${it.title}${if (it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""}" }
 
         val correctionsText = if (corrections.isEmpty()) "مورد دارای مغایرت یا نیازمند اصلاح مشاهده نگردید."
         else corrections.joinToString("\n- ") {
             val note = if (it.inspectorNotes.isNotBlank()) ": ${it.inspectorNotes}" else ""
-            val ref = if (includeRegulations && it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""
+            val ref = if (it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""
             "${it.title}$note$ref"
         }
 
-        val toneInstruction = when (tone) {
-            "SERIOUS" -> "لحن گزارش جدی و قاطع باشد."
-            "SAFETY_WARNING" -> "بر هشدارهای ایمنی تأکید کن."
-            else -> "لحن گزارش عادی و رسمی باشد."
-        }
+        val fixedPrompt = """
+            در نقش یک مهندس ناظر تأسیسات مکانیکی رسمی عضو سازمان نظام مهندسی ساختمان ایران، یک گزارش نظارت فنی و ایمنی دقیق و رسمی برای ثبت در اتوماسیون نظام مهندسی و شهرداری تهیه کن.
 
-        val prompt = """
-            در نقش یک مهندس ناظر مکانیک رسمی عضو سازمان نظام مهندسی ساختمان ایران، یک گزارش نظارت فنی و کارگاهی دقیق و رسمی برای ثبت در اتوماسیون نظام مهندسی و شهرداری آماده کن.
-            $toneInstruction
+            قوانین ثابت گزارش‌نویسی:
+            ۱. گزارش باید منطبق مقررات ملی ساختمان ایران (به‌ویژه مباحث ۱۴، ۱۶، ۱۷ و ۱۲) باشد.
+            ۲. هر مغایرت یا نقص باید به بند مرتبط مقررات ملی ساختمان ارجاع دهد.
+            ۳. موارد ایمنی را جدی بگیر. استفاده نکردن از کلاه ایمنی، دستکش ایمنی، کفش ایمنی و سایر وسایل حفاظت فردی مغایرت با مبحث ۱۲ مقررات ملی ساختمان است و باید مورد تأکید قرار گیرد.
+            ۴. حضور یا عدم حضور مجری ذی‌صلاح در محل ساختمان از موارد مهم و الزامی است. اگر مجری ذی‌صلاح حضور نداشته باشد، حتماً در گزارش ذکر شود.
+            ۵. هیچ اطلاع جعلی تولید نکن. فقط بر اساس داده‌های ارائه‌شده گزارش بنویس.
+            ۶. زبان گزارش کاملاً فارسی رسمی و فنی باشد.
 
             مشخصات پروژه:
             - نام پروژه: ${project.name}
@@ -77,18 +78,18 @@ object GeminiService {
 
             تعداد موارد بررسی‌نشده: ${incomplete.size}
 
-            ساختار گزارش:
+            ساختار الزامی گزارش:
             ۱. مقدمه کوتاه شامل مشخصات پروژه و تاریخ بازدید.
-            ۲. موارد تأییدشده.
-            ۳. مغایرت‌ها و موارد نیازمند اصلاح (با ذکر دقیق نواقص).
-            ۴. موارد بررسی‌نشده (در صورت وجود).
-            ۵. جمع‌بندی و یادآوری مسئولیت مهندس ناظر.
-
-            زبان گزارش کاملاً فارسی رسمی باشد. اطلاعات جعلی تولید نکن. فقط بر اساس داده‌های ارائه‌شده گزارش بنویس.
+            ۲. وضعیت حضور مجری ذی‌صلاح (در صورت عدم حضور حتماً ذکر شود).
+            ۳. موارد ایمنی مشاهده‌شده (کلاه، دستکش، کفش و سایر وسایل حفاظت فردی).
+            ۴. موارد تأییدشده فنی.
+            ۵. مغایرت‌ها و موارد نیازمند اصلاح (با ارجاع دقیق به بند مقررات ملی).
+            ۶. موارد بررسی‌نشده (در صورت وجود).
+            ۷. جمع‌بندی و یادآوری مسئولیت مهندس ناظر.
         """.trimIndent()
 
         try {
-            val responseText = callGeminiApi(prompt)
+            val responseText = callGeminiApi(fixedPrompt)
             if (responseText.isNullOrBlank()) {
                 generateSimulatedReport(project, checklists, includeRegulations)
             } else {
@@ -157,7 +158,7 @@ object GeminiService {
             "• موردی هنوز به طور کامل تایید نشده است."
         } else {
             completed.joinToString("\n") {
-                val ref = if (includeRegulations && it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""
+                val ref = if (it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""
                 "• تأیید بند ${it.title}$ref"
             }
         }
@@ -167,28 +168,34 @@ object GeminiService {
         } else {
             corrections.joinToString("\n") {
                 val note = if (it.inspectorNotes.isNotBlank()) "\n  - توضیح: ${it.inspectorNotes}" else ""
-                val ref = if (includeRegulations && it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""
+                val ref = if (it.regulationReference.isNotBlank()) " (مرجع: ${it.regulationReference})" else ""
                 "• ${it.title}$note$ref"
             }
         }
 
         return """
-            گزارش نظارت تأسیسات مکانیکی
+            گزارش نظارت تأسیسات مکانیکی (منطبق مقررات ملی ساختمان)
 
             پروژه: ${project.name}
             محل: ${project.city}${project.district?.let { "، $it" } ?: ""}
             گروه ساختمان: ${project.selectedBuildingGroup} | کاربری: ${project.buildingType}
             طبقات: ${project.floorsCount} | متراژ مؤثر: ${project.effectiveArea.toInt()} مترمربع
 
-            ۱. موارد تأییدشده:
+            ۱. وضعیت حضور مجری ذی‌صلاح:
+            • وضعیت حضور مجری ذی‌صلاح در چک‌لیست ثبت نشده است (لطفاً در بازدید بعدی بررسی شود).
+
+            ۲. موارد ایمنی (مبحث ۱۲):
+            • استفاده از کلاه ایمنی، دستکش و کفش ایمنی الزامی است.
+
+            ۳. موارد تأییدشده:
             $completedBullets
 
-            ۲. مغایرت‌ها و موارد نیازمند اصلاح:
+            ۴. مغایرت‌ها و موارد نیازمند اصلاح:
             $correctionBullets
 
             ---
             یادآوری: این گزارش بر اساس اطلاعات ثبت‌شده توسط مهندس ناظر تهیه شده است.
-            نتیجه نهایی فنی بر عهده مهندس مسئول است.
+            نتیجه نهایی فنی و ایمنی بر عهده مهندس مسئول است.
         """.trimIndent()
     }
 }
