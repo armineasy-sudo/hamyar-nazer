@@ -15,6 +15,7 @@ import com.example.data.AppDatabase
 import com.example.data.ChecklistSeeder
 import com.example.data.ProjectEntity
 import com.example.data.SampleDataSeeder
+import com.example.data.SyncManager
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.flow.flowOf
@@ -92,6 +93,9 @@ fun AppNavigation() {
     val activeCount = projectsList.count { it.status == "ACTIVE" }
     val archivedCount = projectsList.count { it.status == "ARCHIVED" }
 
+    // وضعیت همگام‌سازی آفلاین (ساده)
+    val syncStatusText = SyncManager.getStatusText(null)
+
     Surface(modifier = Modifier.fillMaxSize()) {
         when (currentScreen) {
             Screen.LANDING -> LandingScreen(onEnterApp = { currentScreen = Screen.LOGIN })
@@ -107,7 +111,8 @@ fun AppNavigation() {
                 onNavigateToTools = { currentScreen = Screen.TOOLS },
                 onNavigateToSettings = { currentScreen = Screen.SETTINGS },
                 projectCount = activeCount,
-                archivedCount = archivedCount
+                archivedCount = archivedCount,
+                syncStatusText = syncStatusText
             )
 
             Screen.PROJECTS_LIST -> ProjectListScreen(
