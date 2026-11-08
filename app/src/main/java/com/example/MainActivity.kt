@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.AppDatabase
+import com.example.data.InspectionVisitEntity
 import com.example.data.ProjectEntity
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
@@ -23,6 +24,7 @@ enum class Screen {
     DASHBOARD,
     PROJECTS_LIST,
     PROJECT_DETAIL,
+    VISITS,
     TOOLS,
     SETTINGS
 }
@@ -53,6 +55,14 @@ fun AppNavigation() {
     val scope = rememberCoroutineScope()
 
     val projectsList by remember { appDao.getAllProjects() }.collectAsState(initial = emptyList())
+
+    val visitsList by remember(selectedProject?.id) {
+        if (selectedProject != null) {
+            appDao.getVisitsForProject(selectedProject!!.id)
+        } else {
+            kotlinx.coroutines.flow.flowOf(emptyList())
+        }
+    }.collectAsState(initial = emptyList())
 
     val activeCount = projectsList.count { it.status == "ACTIVE" }
     val archivedCount = projectsList.count { it.status == "ARCHIVED" }
@@ -87,16 +97,35 @@ fun AppNavigation() {
                 ProjectListScreen(
                     projects = projectsList,
                     onAddProject = { newProject ->
-                        scope.launch {
-                            appDao.insertProject(newProject)
-                        }
+                        scope.launch { appDao.insertProject(newProject) }
                     },
                     onProjectSelected = { project ->
                         selectedProject = project
-                        currentScreen = Screen.PROJECT_DETAIL
+                        currentScreen = Screen.VISITS
                     },
                     onNavigateBack = { currentScreen = Screen.DASHBOARD }
                 )
+            }
+
+            Screen.VISITS -> {
+                if (selectedProject != null) {
+                    VisitFormScreen(
+                        project = selectedProject!!,
+                        visits = visitsList,
+                        onSaveVisit = { visit ->
+                            scope.launch {
+                                if (visit.id == 0L) {
+                                    appDao.insertVisit(visit)
+                                } else {
+                                    appDao.updateVisit(visit)
+                                }
+                            }
+                        },
+                        onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
+                    )
+                } else {
+                    currentScreen = Screen.PROJECTS_LIST
+                }
             }
 
             Screen.PROJECT_DETAIL -> {
