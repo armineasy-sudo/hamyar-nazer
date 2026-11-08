@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AppDao {
-    // Projects
-    @Query("SELECT * FROM projects ORDER BY createdAt DESC")
+    // Projects — مرتب‌سازی بر اساس آخرین ویرایش
+    @Query("SELECT * FROM projects ORDER BY updatedAt DESC")
     fun getAllProjects(): Flow<List<ProjectEntity>>
 
     @Query("SELECT * FROM projects WHERE id = :id")
