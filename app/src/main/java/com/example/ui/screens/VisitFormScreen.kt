@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.ChecklistEntity
 import com.example.data.InspectionVisitEntity
 import com.example.data.ProjectEntity
+import com.example.data.ReportVersionEntity
 import com.example.service.GeminiService
 import com.example.ui.components.ShamsiDatePickerDialog
 import kotlinx.coroutines.launch
@@ -32,6 +33,8 @@ fun VisitFormScreen(
     checklists: List<ChecklistEntity> = emptyList(),
     onSaveVisit: (InspectionVisitEntity) -> Unit,
     onDeleteVisit: (InspectionVisitEntity) -> Unit = {},
+    onSaveReportVersion: (ReportVersionEntity) -> Unit = {},
+    onNavigateToReportVersions: () -> Unit = {},
     onNavigateBack: () -> Unit
 ) {
     var showForm by remember { mutableStateOf(false) }
@@ -42,6 +45,7 @@ fun VisitFormScreen(
     var isGenerating by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedVisitDateForReport by remember { mutableStateOf("") }
+    var currentVisitIdForReport by remember { mutableStateOf(0L) }
 
     var visitDate by remember { mutableStateOf("") }
     var visitTime by remember { mutableStateOf("") }
@@ -66,7 +70,7 @@ fun VisitFormScreen(
         showForm = true
     }
 
-    fun generateAiReport(date: String = "") {
+    fun generateAiReport(date: String = "", visitId: Long = 0L) {
         isGenerating = true
         scope.launch {
             reportText = GeminiService.generateSupervisionReport(
@@ -77,6 +81,19 @@ fun VisitFormScreen(
             )
             isGenerating = false
             showReportDialog = true
+            currentVisitIdForReport = visitId
+        }
+    }
+
+    fun saveCurrentReportAsVersion() {
+        if (reportText.isNotBlank() && currentVisitIdForReport > 0) {
+            val version = ReportVersionEntity(
+                visitId = currentVisitIdForReport,
+                versionNumber = 1,
+                content = reportText,
+                tone = "SAFETY_WARNING"
+            )
+            onSaveReportVersion(version)
         }
     }
 
@@ -105,10 +122,14 @@ fun VisitFormScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToReportVersions) {
+                        Icon(Icons.Default.History, contentDescription = "نسخه‌های گزارش", tint = Color.White)
+                    }
                     IconButton(
                         onClick = {
-                            selectedVisitDateForReport = visits.firstOrNull()?.visitDateShamsi ?: ""
-                            generateAiReport(selectedVisitDateForReport)
+                            val latestVisit = visits.firstOrNull()
+                            selectedVisitDateForReport = latestVisit?.visitDateShamsi ?: ""
+                            generateAiReport(selectedVisitDateForReport, latestVisit?.id ?: 0L)
                         },
                         enabled = !isGenerating
                     ) {
@@ -367,11 +388,12 @@ fun VisitFormScreen(
                     Button(
                         onClick = {
                             clipboardManager.setText(AnnotatedString(reportText))
+                            saveCurrentReportAsVersion()
                             showReportDialog = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))
                     ) {
-                        Text("کپی متن")
+                        Text("کپی و ذخیره نسخه")
                     }
                 },
                 dismissButton = {
@@ -389,7 +411,7 @@ fun VisitFormScreen(
                                 checked = includeRegulations,
                                 onCheckedChange = {
                                     includeRegulations = it
-                                    generateAiReport(selectedVisitDateForReport)
+                                    generateAiReport(selectedVisitDateForReport, currentVisitIdForReport)
                                 }
                             )
                             Text("ارجاع به مقررات", color = Color.White, fontSize = 13.sp)
