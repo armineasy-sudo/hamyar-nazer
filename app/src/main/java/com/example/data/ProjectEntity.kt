@@ -3,17 +3,27 @@ package com.example.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * پروژه ساختمانی
+ * تعداد طبقات از روی شالوده محاسبه می‌شود.
+ * گروه ساختمان بر اساس مبحث ۲ پیشنهاد می‌شود و قابل ویرایش دستی است.
+ */
 @Entity(tableName = "projects")
 data class ProjectEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
+    val ownerName: String? = null,
+    val address: String? = null,
     val city: String,
-    val district: String,
-    val buildingGroup: String, // الف، ب، ج، د
-    val buildingType: String, // مسکونی، تجاری، اداری، صنعتی
+    val district: String? = null,
+    val buildingType: String,
     val floorsCount: Int,
-    val totalArea: Double,
-    val mechanicalSystemType: String, // اسپلیت، چیلر، فن‌کویل، کولر آبی و رادیاتور
-    val status: String, // ACTIVE, ARCHIVED
-    val createdAt: Long = System.currentTimeMillis()
+    val effectiveArea: Double,
+    val suggestedBuildingGroup: String,
+    val selectedBuildingGroup: String,
+    val groupChangedByUser: Boolean = false,
+    val notes: String? = null,
+    val status: String = "ACTIVE",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 )
