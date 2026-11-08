@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,15 +17,18 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.ChecklistEntity
 import com.example.data.InspectionVisitEntity
 import com.example.data.ProjectEntity
-import com.example.service.ReportGenerator
+import com.example.service.GeminiService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VisitFormScreen(
     project: ProjectEntity,
     visits: List<InspectionVisitEntity>,
+    checklists: List<ChecklistEntity> = emptyList(),
     onSaveVisit: (InspectionVisitEntity) -> Unit,
     onDeleteVisit: (InspectionVisitEntity) -> Unit = {},
     onNavigateBack: () -> Unit
@@ -36,6 +38,7 @@ fun VisitFormScreen(
     var showReportDialog by remember { mutableStateOf(false) }
     var reportText by remember { mutableStateOf("") }
     var includeRegulations by remember { mutableStateOf(false) }
+    var isGenerating by remember { mutableStateOf(false) }
 
     var visitDate by remember { mutableStateOf("") }
     var visitTime by remember { mutableStateOf("") }
@@ -46,6 +49,7 @@ fun VisitFormScreen(
     var stageError by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
 
     fun openForm(visit: InspectionVisitEntity? = null) {
         editingVisit = visit
@@ -59,15 +63,17 @@ fun VisitFormScreen(
         showForm = true
     }
 
-    fun generateReport() {
-        reportText = ReportGenerator.generate(
-            project = project,
-            checklists = emptyList(),
-            reportType = ReportGenerator.ReportType.STAGE,
-            includeRegulations = includeRegulations,
-            includeAdminHeader = false
-        )
-        showReportDialog = true
+    fun generateAiReport() {
+        isGenerating = true
+        scope.launch {
+            reportText = GeminiService.generateSupervisionReport(
+                project = project,
+                checklists = checklists,
+                includeRegulations = includeRegulations
+            )
+            isGenerating = false
+            showReportDialog = true
+        }
     }
 
     fun validate(): Boolean {
@@ -95,8 +101,12 @@ fun VisitFormScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { generateReport() }) {
-                        Icon(Icons.Default.Description, contentDescription = "تولید گزارش", tint = Color.White)
+                    IconButton(onClick = { generateAiReport() }, enabled = !isGenerating) {
+                        if (isGenerating) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = "تولید گزارش هوشمند", tint = Color.White)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
@@ -323,7 +333,7 @@ fun VisitFormScreen(
         if (showReportDialog) {
             AlertDialog(
                 onDismissRequest = { showReportDialog = false },
-                title = { Text("پیش‌نویس گزارش", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("پیش‌نویس گزارش هوشمند", color = Color.White, fontWeight = FontWeight.Bold) },
                 containerColor = Color(0xFF1E293B),
                 confirmButton = {
                     Button(
@@ -351,7 +361,7 @@ fun VisitFormScreen(
                                 checked = includeRegulations,
                                 onCheckedChange = {
                                     includeRegulations = it
-                                    generateReport()
+                                    generateAiReport()
                                 }
                             )
                             Text("ارجاع به مقررات", color = Color.White, fontSize = 13.sp)
