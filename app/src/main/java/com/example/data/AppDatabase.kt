@@ -5,7 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ProjectEntity::class, ChecklistEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [
+        ProjectEntity::class,
+        ChecklistEntity::class,
+        InspectionVisitEntity::class,
+        ChecklistItemEntity::class,
+        InspectionItemResultEntity::class,
+        ReportVersionEntity::class
+    ],
+    version = 2,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun appDao(): AppDao
 
@@ -20,7 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "inspector_database"
                 )
-                .fallbackToDestructiveMigration()
+                // Migration امن بعداً اضافه می‌شود. حالاً برای توسعه از destructive استفاده نمی‌شود.
                 .build()
                 INSTANCE = instance
                 instance
