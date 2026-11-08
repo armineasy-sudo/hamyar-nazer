@@ -41,6 +41,7 @@ fun VisitFormScreen(
     var includeRegulations by remember { mutableStateOf(false) }
     var isGenerating by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var selectedVisitDateForReport by remember { mutableStateOf("") }
 
     var visitDate by remember { mutableStateOf("") }
     var visitTime by remember { mutableStateOf("") }
@@ -65,12 +66,13 @@ fun VisitFormScreen(
         showForm = true
     }
 
-    fun generateAiReport() {
+    fun generateAiReport(date: String = "") {
         isGenerating = true
         scope.launch {
             reportText = GeminiService.generateSupervisionReport(
                 project = project,
                 checklists = checklists,
+                visitDateShamsi = date.ifBlank { selectedVisitDateForReport },
                 includeRegulations = includeRegulations
             )
             isGenerating = false
@@ -103,7 +105,13 @@ fun VisitFormScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { generateAiReport() }, enabled = !isGenerating) {
+                    IconButton(
+                        onClick = {
+                            selectedVisitDateForReport = visits.firstOrNull()?.visitDateShamsi ?: ""
+                            generateAiReport(selectedVisitDateForReport)
+                        },
+                        enabled = !isGenerating
+                    ) {
                         if (isGenerating) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
@@ -381,7 +389,7 @@ fun VisitFormScreen(
                                 checked = includeRegulations,
                                 onCheckedChange = {
                                     includeRegulations = it
-                                    generateAiReport()
+                                    generateAiReport(selectedVisitDateForReport)
                                 }
                             )
                             Text("ارجاع به مقررات", color = Color.White, fontSize = 13.sp)
