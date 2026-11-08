@@ -21,6 +21,7 @@ import com.example.data.ChecklistEntity
 import com.example.data.InspectionVisitEntity
 import com.example.data.ProjectEntity
 import com.example.service.GeminiService
+import com.example.ui.components.ShamsiDatePickerDialog
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +40,7 @@ fun VisitFormScreen(
     var reportText by remember { mutableStateOf("") }
     var includeRegulations by remember { mutableStateOf(false) }
     var isGenerating by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     var visitDate by remember { mutableStateOf("") }
     var visitTime by remember { mutableStateOf("") }
@@ -255,13 +257,19 @@ fun VisitFormScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = visitDate,
-                            onValueChange = { visitDate = it; dateError = false },
+                            onValueChange = {},
+                            readOnly = true,
                             label = { Text("تاریخ بازدید (شمسی)", color = Color.LightGray) },
-                            placeholder = { Text("مثال: 1404/08/15", color = Color.Gray) },
+                            placeholder = { Text("برای انتخاب تاریخ کلیک کنید", color = Color.Gray) },
                             isError = dateError,
                             supportingText = if (dateError) {
                                 { Text("تاریخ الزامی است", color = Color(0xFFEF4444)) }
                             } else null,
+                            trailingIcon = {
+                                IconButton(onClick = { showDatePicker = true }) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = "انتخاب تاریخ", tint = Color(0xFF3B82F6))
+                                }
+                            },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -327,6 +335,18 @@ fun VisitFormScreen(
                         )
                     }
                 }
+            )
+        }
+
+        if (showDatePicker) {
+            ShamsiDatePickerDialog(
+                initialDate = visitDate,
+                onDateSelected = { selected ->
+                    visitDate = selected
+                    dateError = false
+                    showDatePicker = false
+                },
+                onDismiss = { showDatePicker = false }
             )
         }
 
