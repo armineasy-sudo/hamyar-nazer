@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 enum class Screen {
+    LANDING,
     LOGIN,
     DASHBOARD,
     PROJECTS_LIST,
@@ -47,7 +48,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val context = LocalContext.current
-    var currentScreen by remember { mutableStateOf(Screen.LOGIN) }
+    var currentScreen by remember { mutableStateOf(Screen.LANDING) }
     var engineerName by remember { mutableStateOf("") }
     var selectedProject by remember { mutableStateOf<ProjectEntity?>(null) }
 
@@ -73,6 +74,12 @@ fun AppNavigation() {
 
     Surface(modifier = Modifier.fillMaxSize()) {
         when (currentScreen) {
+            Screen.LANDING -> {
+                LandingScreen(
+                    onEnterApp = { currentScreen = Screen.LOGIN }
+                )
+            }
+
             Screen.LOGIN -> {
                 LoginScreen(
                     onLoginSuccess = { enteredName ->
