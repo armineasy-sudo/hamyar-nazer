@@ -12,11 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -28,7 +26,8 @@ fun DashboardScreen(
     onNavigateToTools: () -> Unit,
     onNavigateToSettings: () -> Unit,
     projectCount: Int,
-    archivedCount: Int
+    archivedCount: Int,
+    syncStatusText: String = "آفلاین"
 ) {
     val scrollState = rememberScrollState()
 
@@ -55,12 +54,44 @@ fun DashboardScreen(
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
+            // Sync Status Banner
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (syncStatusText.contains("همگام")) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                        contentDescription = null,
+                        tint = if (syncStatusText.contains("همگام")) Color(0xFF10B981) else Color(0xFFF59E0B),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "وضعیت: $syncStatusText",
+                        color = Color.White,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "آفلاین-اول",
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Welcome Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
             ) {
                 Row(
                     modifier = Modifier
@@ -102,7 +133,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Quick Stats
             Text(
                 "آمار و خلاصه وضعیت کارگاه‌ها",
                 fontWeight = FontWeight.Bold,
@@ -134,7 +164,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Main Shortcuts
             Text(
                 "بخش‌های اصلی نرم‌افزار",
                 fontWeight = FontWeight.Bold,
@@ -169,7 +198,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Regulatory banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,8 +245,7 @@ fun StatCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -297,7 +324,7 @@ fun ShortcutItem(
             }
 
             Icon(
-                imageVector = Icons.Default.PlayArrow, // Right arrow equivalent for Persian RTL
+                imageVector = Icons.Default.PlayArrow,
                 contentDescription = null,
                 tint = Color.Gray,
                 modifier = Modifier.size(16.dp)
