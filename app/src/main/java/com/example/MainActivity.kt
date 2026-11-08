@@ -101,10 +101,26 @@ fun AppNavigation() {
                     },
                     onProjectSelected = { project ->
                         selectedProject = project
-                        currentScreen = Screen.VISITS
+                        currentScreen = Screen.PROJECT_DETAIL
                     },
                     onNavigateBack = { currentScreen = Screen.DASHBOARD }
                 )
+            }
+
+            Screen.PROJECT_DETAIL -> {
+                if (selectedProject != null) {
+                    ProjectDetailScreen(
+                        project = selectedProject!!,
+                        onNavigateToVisits = { currentScreen = Screen.VISITS },
+                        onArchiveProject = { updated ->
+                            scope.launch { appDao.updateProject(updated) }
+                            selectedProject = updated
+                        },
+                        onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
+                    )
+                } else {
+                    currentScreen = Screen.PROJECTS_LIST
+                }
             }
 
             Screen.VISITS -> {
@@ -124,24 +140,7 @@ fun AppNavigation() {
                         onDeleteVisit = { visit ->
                             scope.launch { appDao.deleteVisit(visit) }
                         },
-                        onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
-                    )
-                } else {
-                    currentScreen = Screen.PROJECTS_LIST
-                }
-            }
-
-            Screen.PROJECT_DETAIL -> {
-                if (selectedProject != null) {
-                    ProjectDetailScreen(
-                        project = selectedProject!!,
-                        checklists = emptyList(),
-                        onUpdateChecklist = { },
-                        onArchiveProject = { updated ->
-                            scope.launch { appDao.updateProject(updated) }
-                            selectedProject = updated
-                        },
-                        onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
+                        onNavigateBack = { currentScreen = Screen.PROJECT_DETAIL }
                     )
                 } else {
                     currentScreen = Screen.PROJECTS_LIST
