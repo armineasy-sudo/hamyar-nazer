@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AppDao {
-    // Projects — مرتب‌سازی بر اساس آخرین ویرایش
+    // Projects
     @Query("SELECT * FROM projects ORDER BY updatedAt DESC")
     fun getAllProjects(): Flow<List<ProjectEntity>>
 
@@ -33,6 +33,16 @@ interface AppDao {
 
     @Delete
     suspend fun deleteVisit(visit: InspectionVisitEntity)
+
+    // Project Checklists (ChecklistEntity)
+    @Query("SELECT * FROM checklist_items WHERE projectId = :projectId ORDER BY id ASC")
+    fun getChecklistsForProject(projectId: Long): Flow<List<ChecklistEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChecklists(checklists: List<ChecklistEntity>)
+
+    @Update
+    suspend fun updateChecklist(checklist: ChecklistEntity)
 
     // Checklist Items (official + custom)
     @Query("SELECT * FROM checklist_items ORDER BY id ASC")
