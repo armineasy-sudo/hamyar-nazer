@@ -31,6 +31,9 @@ interface AppDao {
     @Update
     suspend fun updateVisit(visit: InspectionVisitEntity)
 
+    @Delete
+    suspend fun deleteVisit(visit: InspectionVisitEntity)
+
     // Checklist Items (official + custom)
     @Query("SELECT * FROM checklist_items ORDER BY id ASC")
     fun getAllChecklistItems(): Flow<List<ChecklistItemEntity>>
