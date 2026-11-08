@@ -2,11 +2,14 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,7 +29,23 @@ fun LandingScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Logo placeholder area — لوگوی شرکت آتین انرژی
+        Card(
+            modifier = Modifier.size(120.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Black)
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("آتین", color = Color(0xFF1E3A8A), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("انرژی", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "همیار ناظر",
@@ -41,7 +60,7 @@ fun LandingScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "دستیار هوشمند مهندس ناظر ساختمان",
@@ -64,6 +83,7 @@ fun LandingScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("مهندس آرمین ایزی")
                 Text("شرکت همتا انرژی سازان آتین")
+                Text("AtinENERGY.ir", color = Color(0xFFEF4444), fontSize = 13.sp)
             }
         }
 
