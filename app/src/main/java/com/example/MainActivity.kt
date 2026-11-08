@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.AppDatabase
+import com.example.data.ChecklistSeeder
 import com.example.data.ProjectEntity
 import com.example.data.SampleDataSeeder
 import com.example.ui.screens.*
@@ -26,6 +27,7 @@ enum class Screen {
     PROJECTS_LIST,
     PROJECT_DETAIL,
     VISITS,
+    CHECKLIST,
     TOOLS,
     SETTINGS
 }
@@ -58,16 +60,15 @@ fun AppNavigation() {
 
     val projectsList by remember { appDao.getAllProjects() }.collectAsState(initial = emptyList())
 
-    // افزودن پروژه‌های نمونه و بازدیدها در اولین اجرا اگر پایگاه خالی باشد
     LaunchedEffect(projectsList) {
         if (!hasSeeded && projectsList.isEmpty()) {
             scope.launch {
                 SampleDataSeeder.getSampleProjects().forEach { project ->
                     val projectId = appDao.insertProject(project)
                     val sampleVisits = SampleDataSeeder.getSampleVisits(projectId, project.name)
-                    sampleVisits.forEach { visit ->
-                        appDao.insertVisit(visit)
-                    }
+                    sampleVisits.forEach { visit -> appDao.insertVisit(visit) }
+                    val checklists = ChecklistSeeder.getDefaultChecklists(projectId)
+                    appDao.insertChecklists(checklists)
                 }
             }
             hasSeeded = true
@@ -75,11 +76,11 @@ fun AppNavigation() {
     }
 
     val visitsList by remember(selectedProject?.id) {
-        if (selectedProject != null) {
-            appDao.getVisitsForProject(selectedProject!!.id)
-        } else {
-            flowOf(emptyList())
-        }
+        if (selectedProject != null) appDao.getVisitsForProject(selectedProject!!.id) else flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+
+    val checklistsList by remember(selectedProject?.id) {
+        if (selectedProject != null) appDao.getChecklistsForProject(selectedProject!!.id) else flowOf(emptyList())
     }.collectAsState(initial = emptyList())
 
     val activeCount = projectsList.count { it.status == "ACTIVE" }
@@ -87,58 +88,64 @@ fun AppNavigation() {
 
     Surface(modifier = Modifier.fillMaxSize()) {
         when (currentScreen) {
-            Screen.LANDING -> {
-                LandingScreen(onEnterApp = { currentScreen = Screen.LOGIN })
-            }
+            Screen.LANDING -> LandingScreen(onEnterApp = { currentScreen = Screen.LOGIN })
 
-            Screen.LOGIN -> {
-                LoginScreen(
-                    onLoginSuccess = { enteredName ->
-                        engineerName = enteredName
-                        currentScreen = Screen.DASHBOARD
+            Screen.LOGIN -> LoginScreen(onLoginSuccess = { name ->
+                engineerName = name
+                currentScreen = Screen.DASHBOARD
+            })
+
+            Screen.DASHBOARD -> DashboardScreen(
+                engineerName = engineerName,
+                onNavigateToProjects = { currentScreen = Screen.PROJECTS_LIST },
+                onNavigateToTools = { currentScreen = Screen.TOOLS },
+                onNavigateToSettings = { currentScreen = Screen.SETTINGS },
+                projectCount = activeCount,
+                archivedCount = archivedCount
+            )
+
+            Screen.PROJECTS_LIST -> ProjectListScreen(
+                projects = projectsList,
+                onAddProject = { newProject ->
+                    scope.launch {
+                        val id = appDao.insertProject(newProject)
+                        val checklists = ChecklistSeeder.getDefaultChecklists(id)
+                        appDao.insertChecklists(checklists)
                     }
-                )
-            }
-
-            Screen.DASHBOARD -> {
-                DashboardScreen(
-                    engineerName = engineerName,
-                    onNavigateToProjects = { currentScreen = Screen.PROJECTS_LIST },
-                    onNavigateToTools = { currentScreen = Screen.TOOLS },
-                    onNavigateToSettings = { currentScreen = Screen.SETTINGS },
-                    projectCount = activeCount,
-                    archivedCount = archivedCount
-                )
-            }
-
-            Screen.PROJECTS_LIST -> {
-                ProjectListScreen(
-                    projects = projectsList,
-                    onAddProject = { newProject ->
-                        scope.launch { appDao.insertProject(newProject) }
-                    },
-                    onProjectSelected = { project ->
-                        selectedProject = project
-                        currentScreen = Screen.PROJECT_DETAIL
-                    },
-                    onNavigateBack = { currentScreen = Screen.DASHBOARD }
-                )
-            }
+                },
+                onProjectSelected = { project ->
+                    selectedProject = project
+                    currentScreen = Screen.PROJECT_DETAIL
+                },
+                onNavigateBack = { currentScreen = Screen.DASHBOARD }
+            )
 
             Screen.PROJECT_DETAIL -> {
                 if (selectedProject != null) {
                     ProjectDetailScreen(
                         project = selectedProject!!,
                         onNavigateToVisits = { currentScreen = Screen.VISITS },
+                        onNavigateToChecklist = { currentScreen = Screen.CHECKLIST },
                         onArchiveProject = { updated ->
                             scope.launch { appDao.updateProject(updated.copy(updatedAt = System.currentTimeMillis())) }
                             selectedProject = updated.copy(updatedAt = System.currentTimeMillis())
                         },
                         onNavigateBack = { currentScreen = Screen.PROJECTS_LIST }
                     )
-                } else {
-                    currentScreen = Screen.PROJECTS_LIST
-                }
+                } else currentScreen = Screen.PROJECTS_LIST
+            }
+
+            Screen.CHECKLIST -> {
+                if (selectedProject != null) {
+                    ChecklistScreen(
+                        project = selectedProject!!,
+                        checklists = checklistsList,
+                        onUpdateChecklist = { updated ->
+                            scope.launch { appDao.updateChecklist(updated) }
+                        },
+                        onNavigateBack = { currentScreen = Screen.PROJECT_DETAIL }
+                    )
+                } else currentScreen = Screen.PROJECTS_LIST
             }
 
             Screen.VISITS -> {
@@ -146,36 +153,23 @@ fun AppNavigation() {
                     VisitFormScreen(
                         project = selectedProject!!,
                         visits = visitsList,
+                        checklists = checklistsList,
                         onSaveVisit = { visit ->
                             scope.launch {
-                                if (visit.id == 0L) {
-                                    appDao.insertVisit(visit)
-                                } else {
-                                    appDao.updateVisit(visit)
-                                }
-                                // به‌روزرسانی تاریخ ویرایش پروژه
+                                if (visit.id == 0L) appDao.insertVisit(visit) else appDao.updateVisit(visit)
                                 val updatedProject = selectedProject!!.copy(updatedAt = System.currentTimeMillis())
                                 appDao.updateProject(updatedProject)
                                 selectedProject = updatedProject
                             }
                         },
-                        onDeleteVisit = { visit ->
-                            scope.launch { appDao.deleteVisit(visit) }
-                        },
+                        onDeleteVisit = { visit -> scope.launch { appDao.deleteVisit(visit) } },
                         onNavigateBack = { currentScreen = Screen.PROJECT_DETAIL }
                     )
-                } else {
-                    currentScreen = Screen.PROJECTS_LIST
-                }
+                } else currentScreen = Screen.PROJECTS_LIST
             }
 
-            Screen.TOOLS -> {
-                ToolsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
-            }
-
-            Screen.SETTINGS -> {
-                SettingsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
-            }
+            Screen.TOOLS -> ToolsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
+            Screen.SETTINGS -> SettingsScreen(onNavigateBack = { currentScreen = Screen.DASHBOARD })
         }
     }
 }
