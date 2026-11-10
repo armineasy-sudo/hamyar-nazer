@@ -122,6 +122,12 @@ fun AppNavigation() {
                         appDao.insertChecklists(checklists)
                     }
                 },
+                onUpdateProject = { updated ->
+                    scope.launch { appDao.updateProject(updated) }
+                },
+                onDeleteProject = { project ->
+                    scope.launch { appDao.deleteProject(project) }
+                },
                 onProjectSelected = { project ->
                     selectedProject = project
                     currentScreen = Screen.PROJECT_DETAIL
