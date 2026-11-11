@@ -44,8 +44,8 @@ interface AppDao {
     @Update
     suspend fun updateChecklist(checklist: ChecklistEntity)
 
-    // Checklist Items
-    @Query("SELECT * FROM checklist_items ORDER BY id ASC")
+    // Reusable checklist templates (official/base checklist)
+    @Query("SELECT * FROM checklist_templates ORDER BY id ASC")
     fun getAllChecklistItems(): Flow<List<ChecklistItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

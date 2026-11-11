@@ -6,8 +6,11 @@ import androidx.room.PrimaryKey
 /**
  * بند چک‌لیست پایه (رسمی)
  * شناسه یکتا ثابت می‌ماند تا تاریخچه حفظ شود.
+ *
+ * This is the reusable checklist template catalog. Project-specific
+ * inspection rows are stored separately in checklist_items.
  */
-@Entity(tableName = "checklist_items")
+@Entity(tableName = "checklist_templates")
 data class ChecklistItemEntity(
     @PrimaryKey val id: String, // مثال: CL-001
     val category: String,
