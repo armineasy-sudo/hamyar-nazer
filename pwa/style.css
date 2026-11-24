@@ -1,0 +1,100 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: "Vazirmatn", "Tahoma", sans-serif;
+  margin: 0;
+  background: #0F172A;
+  color: #F1F5F9;
+  line-height: 1.6;
+}
+header {
+  background: #1E293B;
+  padding: 1rem;
+  text-align: center;
+  border-bottom: 2px solid #3B82F6;
+}
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #1E293B;
+}
+.controls input, .controls select, .controls button {
+  padding: 0.6rem;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0F172A;
+  color: #F1F5F9;
+  font-size: 0.95rem;
+}
+.controls button {
+  background: #3B82F6;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+.controls button:hover {
+  background: #2563EB;
+}
+#checklist {
+  padding: 1rem;
+}
+.item {
+  background: #1E293B;
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border-right: 4px solid #3B82F6;
+}
+.item.CRITICAL { border-right-color: #EF4444; }
+.item.HIGH { border-right-color: #F59E0B; }
+.item h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+.meta {
+  font-size: 0.85rem;
+  color: #94A3B8;
+  margin-bottom: 0.5rem;
+}
+.status-buttons {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.status-buttons button {
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.btn-not { background: #475569; color: white; }
+.btn-ok { background: #10B981; color: white; }
+.btn-fix { background: #EF4444; color: white; }
+.notes {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.4rem;
+  background: #0F172A;
+  color: white;
+  border: 1px solid #334155;
+  border-radius: 6px;
+}
+.print-only {
+  display: none;
+}
+@media print {
+  body { background: white; color: black; }
+  .controls, header, .status-buttons, .notes { display: none !important; }
+  .print-only { display: block; }
+  .item { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 0.5rem; }
+  #report { padding: 1cm; }
+}
