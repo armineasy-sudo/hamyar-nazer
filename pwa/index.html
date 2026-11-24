@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>همیار ناظر - چک‌لیست و گزارش</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#0F172A">
+</head>
+<body>
+  <header>
+    <h1>همیار ناظر</h1>
+    <p>موتور چک‌لیست نظارت تأسیسات مکانیکی</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <input type="search" id="search" placeholder="جستجو در چک‌لیست..." autocomplete="off">
+      <select id="categoryFilter">
+        <option value="all">همه دسته‌ها</option>
+        <option value="SAFETY">ایمنی</option>
+        <option value="BEFORE_CONSTRUCTION">قبل از ساخت</option>
+        <option value="DURING_CONSTRUCTION">حین ساخت</option>
+        <option value="BEFORE_FINAL_APPROVAL">قبل از تأیید نهایی</option>
+      </select>
+      <select id="statusFilter">
+        <option value="all">همه وضعیت‌ها</option>
+        <option value="NOT_COMPLETED">بررسی‌نشده</option>
+        <option value="COMPLETED">تأیید</option>
+        <option value="REQUIRES_CORRECTION">نیاز به اصلاح</option>
+      </select>
+      <button id="printBtn">تولید / چاپ گزارش PDF</button>
+    </section>
+
+    <section id="checklist"></section>
+
+    <section id="report" class="print-only">
+      <h2>گزارش نظارت تأسیسات مکانیکی</h2>
+      <p>پیرو بازدید به عمل آمده از پروژه ساختمانی مذکور</p>
+      <div id="reportContent"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
